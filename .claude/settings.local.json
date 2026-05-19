@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(frontend-design)",
+      "Skill(frontend-design:*)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(mkdir -p \"/Users/yikeliu/Desktop/AIworkspace/projects/露营小助手/.claude\")",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(pkill -f \"vite --port 5173\")",
+      "Bash(open -a \"Google Chrome\" http://localhost:5173)",
+      "Bash(open http://localhost:5173)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173)",
+      "Bash(pkill -f \"vite\")",
+      "Bash(curl -s http://localhost:5173/)",
+      "Bash(gh auth *)",
+      "Bash(gh repo *)",
+      "Bash(git init *)",
+      "Bash(git remote *)",
+      "Bash(git add *)"
+    ]
+  }
+}

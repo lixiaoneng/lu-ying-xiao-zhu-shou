@@ -1,0 +1,250 @@
+import { useApp } from '../../App';
+import { calculateSettlement } from '../../types';
+import type { AAMode } from '../../types';
+
+export default function SettlementTab() {
+  const { plan, updatePlan } = useApp();
+
+  const aaMode: AAMode = plan.aaMode ?? 'family';
+
+  function setMode(mode: AAMode) {
+    updatePlan({ ...plan, aaMode: mode });
+  }
+
+  if (plan.families.length === 0) {
+    return (
+      <div className="empty-state" style={{ marginTop: 40 }}>
+        <div className="empty-icon">⚖️</div>
+        <p>请先在「概况」中添加家庭/小组<br />再来计算 AA</p>
+      </div>
+    );
+  }
+
+  if (plan.expenses.length === 0) {
+    return (
+      <div className="empty-state" style={{ marginTop: 40 }}>
+        <div className="empty-icon">💰</div>
+        <p>还没有花费记录<br />在「花费」页添加后即可计算 AA</p>
+      </div>
+    );
+  }
+
+  const aaExpenses = plan.expenses.filter(e => e.includeInAA);
+  if (aaExpenses.length === 0) {
+    return (
+      <div className="empty-state" style={{ marginTop: 40 }}>
+        <div className="empty-icon">⚖️</div>
+        <p>所有花费均未标记「计入AA」<br />请在花费页面开启 AA 开关</p>
+      </div>
+    );
+  }
+
+  const s = calculateSettlement(plan);
+
+  const modeLabel = aaMode === 'person'
+    ? `每人 ¥${s.perUnit.toFixed(0)}（共 ${s.totalUnits} 人）`
+    : `每家 ¥${s.perUnit.toFixed(0)}（共 ${s.totalUnits} 个家庭）`;
+
+  return (
+    <div style={{ padding: '14px 14px 0' }}>
+
+      {/* Mode toggle */}
+      <div className="segment-control" style={{ marginBottom: 14 }}>
+        <button
+          className={`segment-btn${aaMode === 'family' ? ' active' : ''}`}
+          onClick={() => setMode('family')}
+        >
+          🏠 按家庭均摊
+        </button>
+        <button
+          className={`segment-btn${aaMode === 'person' ? ' active' : ''}`}
+          onClick={() => setMode('person')}
+        >
+          👤 按人头均摊
+        </button>
+      </div>
+
+      {/* Mode hint */}
+      {aaMode === 'person' && plan.people.length === 0 && (
+        <div style={{
+          background: 'var(--red-dim)', border: '1px solid #F5BDB8',
+          borderRadius: 'var(--radius-xs)', padding: '10px 12px',
+          fontSize: 13, color: 'var(--red)', marginBottom: 12,
+        }}>
+          ⚠️ 请先在「概况」页添加参与人员，才能按人头计算
+        </div>
+      )}
+
+      {/* Total banner */}
+      <div style={{
+        background: 'linear-gradient(135deg, #2C1A0E 0%, #4A2E18 100%)',
+        borderRadius: 'var(--radius)',
+        padding: '20px',
+        marginBottom: 14,
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        <div style={{
+          position: 'absolute', top: -30, right: -30,
+          width: 120, height: 120, borderRadius: '50%',
+          background: 'rgba(200, 101, 26, 0.15)',
+        }} />
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 6 }}>
+            AA 总金额
+          </div>
+          <div style={{ fontSize: 36, color: 'white', fontFamily: 'ZCOOL XiaoWei, serif' }}>
+            ¥{s.totalAmount.toFixed(0)}
+          </div>
+          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 4 }}>
+            {modeLabel}
+          </div>
+        </div>
+      </div>
+
+      {/* Per-family breakdown */}
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', marginBottom: 10 }}>
+        各家明细
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+        {s.familyBalances.map(fb => {
+          const isCreditor = fb.balance > 0.01;
+          const isDebtor = fb.balance < -0.01;
+
+          return (
+            <div
+              key={fb.familyId}
+              style={{
+                background: 'var(--card)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border)',
+                borderLeft: `4px solid ${isCreditor ? 'var(--green)' : isDebtor ? 'var(--primary)' : 'var(--border)'}`,
+                padding: '14px 14px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div>
+                  <span style={{ fontWeight: 700, fontSize: 15 }}>{fb.familyName}</span>
+                  {aaMode === 'person' && (
+                    <span style={{
+                      marginLeft: 8, fontSize: 12,
+                      color: 'var(--text-muted)',
+                      background: 'var(--bg-warm)',
+                      padding: '2px 8px', borderRadius: 10,
+                      border: '1px solid var(--border)',
+                    }}>
+                      {fb.memberCount} 人
+                    </span>
+                  )}
+                </div>
+                <span className={`tag ${isCreditor ? 'tag-green' : isDebtor ? 'tag-orange' : 'tag-gray'}`}>
+                  {isCreditor ? '💚 待收款' : isDebtor ? '🔶 待付款' : '✓ 已平'}
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                {[
+                  { label: '已垫付', value: `¥${fb.paid.toFixed(0)}`, color: 'var(--text)' },
+                  {
+                    label: aaMode === 'person' ? `应摊(×${fb.memberCount})` : '应摊',
+                    value: `¥${fb.share.toFixed(0)}`,
+                    color: 'var(--text-muted)',
+                  },
+                  {
+                    label: isCreditor ? '应收' : isDebtor ? '应付' : '已平',
+                    value: `¥${Math.abs(fb.balance).toFixed(0)}`,
+                    color: isCreditor ? 'var(--green)' : isDebtor ? 'var(--primary)' : 'var(--text-muted)',
+                  },
+                ].map(item => (
+                  <div key={item.label} style={{
+                    background: 'var(--bg)',
+                    borderRadius: 8, padding: '8px 10px', textAlign: 'center',
+                  }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>{item.label}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: item.color }}>{item.value}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ marginTop: 10 }}>
+                {plan.expenses
+                  .filter(e => e.payerFamilyId === fb.familyId && e.includeInAA)
+                  .map(e => (
+                    <div key={e.id} style={{
+                      display: 'flex', justifyContent: 'space-between',
+                      fontSize: 13, color: 'var(--text-muted)',
+                      padding: '3px 0',
+                      borderTop: '1px solid var(--bg-warm)',
+                    }}>
+                      <span>{e.item}{e.note ? ` (${e.note})` : ''}</span>
+                      <span style={{ color: 'var(--text)' }}>¥{e.amount.toFixed(0)}</span>
+                    </div>
+                  ))
+                }
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Transfer instructions */}
+      {s.transactions.length > 0 && (
+        <>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', marginBottom: 10 }}>
+            转账方案
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+            {s.transactions.map((tx, i) => (
+              <div key={i} style={{
+                background: 'var(--card)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border)',
+                padding: '14px 16px',
+                display: 'flex', alignItems: 'center', gap: 10,
+              }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: '50%',
+                  background: 'var(--primary-dim)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 13, fontWeight: 700, color: 'var(--primary)', flexShrink: 0,
+                }}>
+                  {tx.fromFamilyName.slice(0, 1)}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 500 }}>
+                    <span style={{ color: 'var(--primary)' }}>{tx.fromFamilyName}</span>
+                    <span style={{ color: 'var(--text-muted)', margin: '0 6px' }}>→</span>
+                    <span style={{ color: 'var(--green)' }}>{tx.toFamilyName}</span>
+                  </div>
+                </div>
+                <div style={{
+                  fontSize: 20, fontWeight: 700, color: 'var(--text)',
+                  fontFamily: 'ZCOOL XiaoWei, serif', flexShrink: 0,
+                }}>
+                  ¥{tx.amount.toFixed(0)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {s.transactions.length === 0 && (
+        <div style={{
+          background: 'var(--green-dim)',
+          border: '1px solid var(--green-border)',
+          borderRadius: 'var(--radius-sm)',
+          padding: '16px', textAlign: 'center',
+          color: 'var(--green)', fontWeight: 500, fontSize: 15,
+          marginBottom: 16,
+        }}>
+          🎉 完美平衡，无需转账！
+        </div>
+      )}
+
+      <div style={{ fontSize: 12, color: 'var(--text-light)', textAlign: 'center', marginBottom: 16 }}>
+        转账方案按家庭/小组汇总，与 AA 方式无关
+      </div>
+    </div>
+  );
+}
