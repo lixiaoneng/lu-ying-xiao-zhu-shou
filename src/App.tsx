@@ -59,13 +59,14 @@ export default function App() {
       channelRef.current = null;
     }
 
+    const effectiveCode = code ?? p.roomCode ?? null;
     setPlan(p);
-    setRoomCode(code ?? null);
+    setRoomCode(effectiveCode);
     setCurrentTab('overview');
     setActivePlanId(id);
 
     // Subscribe to realtime if cloud plan
-    if (code && isSupabaseConfigured()) {
+    if (effectiveCode && isSupabaseConfigured()) {
       channelRef.current = subscribeToPlan(p.id, (updated) => {
         savePlan(updated);
         setPlan(updated);

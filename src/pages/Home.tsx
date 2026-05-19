@@ -51,15 +51,18 @@ export default function Home({ onOpenPlan }: Props) {
       updatedAt: now,
     };
 
-    savePlan(plan);
-    refresh();
-
     let roomCode: string | undefined;
     if (enableCloud && cloudEnabled) {
       const code = generateRoomCode();
       const { error } = await createPlanInCloud(plan, code);
-      if (!error) roomCode = code;
+      if (!error) {
+        roomCode = code;
+        plan.roomCode = code;
+      }
     }
+
+    savePlan(plan);
+    refresh();
 
     setShowNew(false);
     setNewName(''); setNewDate(''); setNewLoc('');
@@ -77,6 +80,7 @@ export default function Home({ onOpenPlan }: Props) {
       setJoining(false);
       return;
     }
+    plan.roomCode = roomCode;
     savePlan(plan);
     refresh();
     setShowJoin(false);

@@ -57,6 +57,7 @@ export interface CampingPlan {
   date: string;
   location: string;
   aaMode: AAMode; // 'family' | 'person'
+  roomCode?: string; // set when plan is a cloud plan
   people: Person[];
   families: Family[];
   supplies: Supply[];
