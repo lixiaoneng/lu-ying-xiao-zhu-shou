@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 interface Props {
   isOpen: boolean;
@@ -9,13 +9,30 @@ interface Props {
 }
 
 export default function Modal({ isOpen, onClose, title, children, footer }: Props) {
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
+    document.body.style.overflow = isOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
+  }, [isOpen]);
+
+  // Track keyboard height via visualViewport API
+  useEffect(() => {
+    if (!isOpen) { setKeyboardHeight(0); return; }
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    function update() {
+      const kh = Math.max(0, window.innerHeight - vv!.height - vv!.offsetTop);
+      setKeyboardHeight(kh);
+    }
+
+    vv.addEventListener('resize', update);
+    update();
+    return () => {
+      vv.removeEventListener('resize', update);
+      setKeyboardHeight(0);
+    };
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -27,6 +44,7 @@ export default function Modal({ isOpen, onClose, title, children, footer }: Prop
         position: 'fixed', inset: 0, zIndex: 1000,
         background: 'rgba(44, 26, 14, 0.45)',
         display: 'flex', alignItems: 'flex-end',
+        paddingBottom: keyboardHeight,
         animation: 'fadeIn 0.22s ease',
       }}
     >
@@ -38,11 +56,12 @@ export default function Modal({ isOpen, onClose, title, children, footer }: Prop
           margin: '0 auto',
           background: 'var(--card)',
           borderRadius: '20px 20px 0 0',
-          paddingBottom: 'env(safe-area-inset-bottom)',
+          paddingBottom: keyboardHeight > 0 ? 8 : 'env(safe-area-inset-bottom)',
           animation: 'sheetIn 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
-          maxHeight: '90dvh',
+          maxHeight: `calc(100dvh - ${keyboardHeight}px - 60px)`,
           display: 'flex',
           flexDirection: 'column',
+          transition: 'padding-bottom 0.15s ease, max-height 0.15s ease',
         }}
       >
         {/* Handle bar */}
