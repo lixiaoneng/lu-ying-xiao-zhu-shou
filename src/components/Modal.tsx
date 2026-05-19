@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 interface Props {
   isOpen: boolean;
@@ -37,7 +38,7 @@ export default function Modal({ isOpen, onClose, title, children, footer }: Prop
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div
       onClick={onClose}
       style={{
@@ -61,7 +62,7 @@ export default function Modal({ isOpen, onClose, title, children, footer }: Prop
           maxHeight: `calc(100dvh - ${keyboardHeight}px - 60px)`,
           display: 'flex',
           flexDirection: 'column',
-          transition: 'padding-bottom 0.15s ease, max-height 0.15s ease',
+          transition: 'max-height 0.15s ease',
         }}
       >
         {/* Handle bar */}
@@ -108,6 +109,7 @@ export default function Modal({ isOpen, onClose, title, children, footer }: Prop
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
