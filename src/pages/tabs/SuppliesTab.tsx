@@ -316,7 +316,7 @@ function SupplyCard({ supply: s, familyName, accent, onToggle, onEdit, onDelete 
       <button
         onClick={onToggle}
         className={`checkbox-custom${s.isReady ? ' checked' : ''}`}
-        style={{ border: 'none', cursor: 'pointer' }}
+        style={{ cursor: 'pointer' }}
       >
         {s.isReady && '✓'}
       </button>

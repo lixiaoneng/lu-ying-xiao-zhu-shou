@@ -6,12 +6,9 @@ import ExpensesTab from './tabs/ExpensesTab';
 import SettlementTab from './tabs/SettlementTab';
 import ShareTab from './tabs/ShareTab';
 import { exportPlanAsJson } from '../store';
-import { useState } from 'react';
 
 export default function PlanDetail() {
   const { plan, goHome, currentTab, roomCode, toast } = useApp();
-  const [showCode, setShowCode] = useState(false);
-
   function formatDate(d: string) {
     if (!d) return '';
     const dt = new Date(d + 'T00:00:00');
@@ -62,7 +59,6 @@ export default function PlanDetail() {
           <button
             onClick={() => {
               navigator.clipboard.writeText(roomCode).catch(() => {});
-              setShowCode(v => !v);
               toast('房间码已复制：' + roomCode);
             }}
             style={{
@@ -70,12 +66,12 @@ export default function PlanDetail() {
               background: 'var(--primary-dim)',
               borderRadius: 8, padding: '4px 10px',
               fontSize: 13, fontWeight: 700,
-              color: 'var(--primary)', letterSpacing: '0.1em',
+              color: 'var(--primary)', letterSpacing: '0.12em',
               flexShrink: 0,
             }}
             title="点击复制房间码"
           >
-            {showCode ? roomCode : '🔗 房间码'}
+            {roomCode}
           </button>
         )}
         <button
