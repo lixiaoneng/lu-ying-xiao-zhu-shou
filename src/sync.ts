@@ -28,10 +28,10 @@ export async function syncPlanToCloud(
 ): Promise<{ error: string | null }> {
   const db = getSupabase();
   if (!db) return { error: 'Supabase 未配置' };
+  // Use upsert so the row is created if it was never inserted (e.g. first sync or DB reset)
   const { error } = await db
     .from('plans')
-    .update({ data: plan, updated_at: new Date().toISOString() })
-    .eq('id', plan.id);
+    .upsert({ id: plan.id, room_code: plan.roomCode, data: plan, updated_at: plan.updatedAt });
   return { error: error?.message ?? null };
 }
 

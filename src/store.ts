@@ -4,13 +4,13 @@ const STORAGE_KEY = 'camping-plans-v1';
 const ACTIVE_KEY = 'camping-active-plan-id';
 
 export function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+  return crypto.randomUUID();
 }
 
 export function loadPlans(): CampingPlan[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as CampingPlan[]) : [];
+    return raw ? (JSON.parse(raw) as CampingPlan[]).map(migratePlan) : [];
   } catch {
     return [];
   }

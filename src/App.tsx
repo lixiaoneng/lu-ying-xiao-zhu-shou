@@ -45,6 +45,9 @@ export default function App() {
   const channelRef = useRef<import('@supabase/supabase-js').RealtimeChannel | null>(null);
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const syncStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Always-current ref so event handlers (visibilitychange, online) get latest plan value
+  const planRef = useRef<CampingPlan | null>(null);
+  useEffect(() => { planRef.current = plan; }, [plan]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -56,22 +59,28 @@ export default function App() {
   }, []);
 
   // Re-fetch from cloud when page becomes visible (e.g. switching back from WeChat)
-  // Only overwrite local data if cloud version is strictly newer
+  // Dep array excludes updatedAt so this doesn't re-register on every edit;
+  // planRef gives us the latest plan value inside the handler without stale closure.
   useEffect(() => {
-    if (!plan || !roomCode || !isSupabaseConfigured()) return;
+    if (!plan?.id || !roomCode || !isSupabaseConfigured()) return;
     function handleVisibility() {
-      if (document.visibilityState === 'visible' && plan && roomCode) {
-        fetchPlanFromCloud(plan.id).then(({ plan: cloudPlan }) => {
-          if (cloudPlan && cloudPlan.updatedAt > plan.updatedAt) {
+      if (document.visibilityState !== 'visible') return;
+      const current = planRef.current;
+      if (!current) return;
+      fetchPlanFromCloud(current.id).then(({ plan: cloudPlan }) => {
+        if (!cloudPlan) return;
+        setPlan(prev => {
+          if (prev && cloudPlan.updatedAt > prev.updatedAt) {
             savePlan(cloudPlan);
-            setPlan(cloudPlan);
+            return cloudPlan;
           }
+          return prev;
         });
-      }
+      });
     }
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [plan?.id, plan?.updatedAt, roomCode]);
+  }, [plan?.id, roomCode]);
 
   const openPlan = useCallback((id: string, code?: string) => {
     const p = loadPlan(id);
@@ -91,18 +100,30 @@ export default function App() {
     setSyncStatus('idle');
 
     if (effectiveCode && isSupabaseConfigured()) {
-      // Fetch latest from cloud, but only use it if cloud is strictly newer than local
+      // Fetch latest from cloud; use functional setPlan so the comparison is never stale
+      // even if the network round-trip takes longer than expected
       fetchPlanFromCloud(p.id).then(({ plan: cloudPlan }) => {
-        if (cloudPlan && cloudPlan.updatedAt > p.updatedAt) {
-          savePlan(cloudPlan);
-          setPlan(cloudPlan);
-        }
+        if (!cloudPlan) return;
+        setPlan(prev => {
+          const current = prev ?? p;
+          if (cloudPlan.updatedAt > current.updatedAt) {
+            savePlan(cloudPlan);
+            return cloudPlan;
+          }
+          return current;
+        });
       });
 
-      // Realtime: always accept — only fires when another user pushes a change
+      // Realtime: fires only when another user pushes a change; still check timestamp
+      // so a late-arriving push doesn't roll back a local edit the current user just made
       channelRef.current = subscribeToPlan(p.id, (updated) => {
-        savePlan(updated);
-        setPlan(updated);
+        setPlan(prev => {
+          if (!prev || updated.updatedAt > prev.updatedAt) {
+            savePlan(updated);
+            return updated;
+          }
+          return prev;
+        });
       });
     }
   }, []);
@@ -123,7 +144,9 @@ export default function App() {
       setSyncStatus('syncing');
       if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
       syncTimerRef.current = setTimeout(() => {
-        syncPlanToCloud(stamped).then(({ error }) => setSyncDone(!!error));
+        syncPlanToCloud(stamped)
+          .then(({ error }) => setSyncDone(!!error))
+          .catch(() => setSyncDone(true));
       }, 300);
     }
   }, [roomCode, setSyncDone]);
@@ -132,8 +155,26 @@ export default function App() {
     if (!plan || !roomCode || !isSupabaseConfigured()) return;
     setSyncStatus('syncing');
     if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
-    syncPlanToCloud(plan).then(({ error }) => setSyncDone(!!error));
+    syncPlanToCloud(plan)
+      .then(({ error }) => setSyncDone(!!error))
+      .catch(() => setSyncDone(true));
   }, [plan, roomCode, setSyncDone]);
+
+  // Auto-retry sync when network comes back online (placed after setSyncDone is defined)
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+    function handleOnline() {
+      const current = planRef.current;
+      if (current && roomCode) {
+        setSyncStatus('syncing');
+        syncPlanToCloud(current)
+          .then(({ error }) => setSyncDone(!!error))
+          .catch(() => setSyncDone(true));
+      }
+    }
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [roomCode, setSyncDone]);
 
   const goHome = useCallback(() => {
     if (channelRef.current) {

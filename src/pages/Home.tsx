@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import type { CampingPlan } from '../types';
 import {
-  loadPlans, savePlan, deletePlan, generateId,
+  loadPlans, loadPlan, savePlan, deletePlan, generateId,
   exportPlanAsJson, importPlanFromJson,
 } from '../store';
 import { createSamplePlan } from '../sampleData';
@@ -27,6 +27,10 @@ export default function Home({ onOpenPlan }: Props) {
   const [joinCode, setJoinCode] = useState('');
   const [joinError, setJoinError] = useState('');
   const [joining, setJoining] = useState(false);
+  // Conflict: local plan is newer than cloud plan when joining
+  const [joinConflict, setJoinConflict] = useState<{
+    cloudPlan: CampingPlan; roomCode: string;
+  } | null>(null);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const cloudEnabled = isSupabaseConfigured();
@@ -75,19 +79,54 @@ export default function Home({ onOpenPlan }: Props) {
     if (joinCode.trim().length < 6) return;
     setJoining(true);
     setJoinError('');
-    const { plan, roomCode, error } = await loadPlanByRoomCode(joinCode.trim());
-    if (error || !plan || !roomCode) {
+    const { plan: cloudPlan, roomCode, error } = await loadPlanByRoomCode(joinCode.trim());
+    if (error || !cloudPlan || !roomCode) {
       setJoinError(error ?? '加入失败，请重试');
       setJoining(false);
       return;
     }
-    plan.roomCode = roomCode;
-    savePlan(plan);
+
+    // Check if there's a local copy of this plan that is newer than the cloud version
+    const localCopy = loadPlan(cloudPlan.id);
+    if (localCopy && localCopy.updatedAt > cloudPlan.updatedAt) {
+      // Surface conflict dialog — let user decide
+      setJoinConflict({ cloudPlan, roomCode });
+      setJoining(false);
+      return;
+    }
+
+    // No conflict: cloud is same age or newer, use it directly
+    cloudPlan.roomCode = roomCode;
+    savePlan(cloudPlan);
     refresh();
     setShowJoin(false);
     setJoinCode('');
     setJoining(false);
-    onOpenPlan(plan.id, roomCode);
+    onOpenPlan(cloudPlan.id, roomCode);
+  }
+
+  function resolveJoinConflict(useCloud: boolean) {
+    if (!joinConflict) return;
+    const { cloudPlan, roomCode } = joinConflict;
+    if (useCloud) {
+      // Overwrite local with cloud version
+      cloudPlan.roomCode = roomCode;
+      savePlan(cloudPlan);
+      refresh();
+      onOpenPlan(cloudPlan.id, roomCode);
+    } else {
+      // Keep local version but attach the room code so sync works going forward
+      const localCopy = loadPlan(cloudPlan.id);
+      if (localCopy) {
+        localCopy.roomCode = roomCode;
+        savePlan(localCopy);
+        refresh();
+        onOpenPlan(localCopy.id, roomCode);
+      }
+    }
+    setJoinConflict(null);
+    setShowJoin(false);
+    setJoinCode('');
   }
 
   function handleLoadSample() {
@@ -300,6 +339,40 @@ export default function Home({ onOpenPlan }: Props) {
                   {joining ? '加入中…' : '加入 →'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Join conflict dialog ── */}
+      {joinConflict && (
+        <div onClick={() => setJoinConflict(null)} style={{ position: 'fixed', inset: 0, zIndex: 1002, background: 'rgba(44,26,14,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px', animation: 'fadeIn 0.2s ease' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--card)', borderRadius: 20, padding: '24px 20px', animation: 'slideUp 0.25s ease', maxWidth: 340, width: '100%' }}>
+            <div style={{ fontSize: 32, textAlign: 'center', marginBottom: 12 }}>⚠️</div>
+            <h3 style={{ fontSize: 16, marginBottom: 8, textAlign: 'center' }}>本地有更新的版本</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.7, marginBottom: 20, textAlign: 'center' }}>
+              你的设备上已有一份更新的本地版本。<br />请选择保留哪个版本：
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button
+                className="btn btn-secondary"
+                style={{ width: '100%', textAlign: 'left', padding: '12px 16px', display: 'block' }}
+                onClick={() => resolveJoinConflict(false)}
+              >
+                <div style={{ fontWeight: 700, fontSize: 14 }}>✅ 保留本地版本（推荐）</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>使用你设备上最新的修改，并绑定到此房间</div>
+              </button>
+              <button
+                className="btn"
+                style={{ width: '100%', textAlign: 'left', padding: '12px 16px', background: 'var(--red-dim)', color: 'var(--red)', border: '1px solid #F5BDB8', borderRadius: 'var(--radius-sm)', display: 'block' }}
+                onClick={() => resolveJoinConflict(true)}
+              >
+                <div style={{ fontWeight: 700, fontSize: 14 }}>☁️ 使用云端版本</div>
+                <div style={{ fontSize: 12, marginTop: 2, opacity: 0.8 }}>会覆盖本地修改，数据无法恢复</div>
+              </button>
+              <button className="btn btn-ghost" style={{ width: '100%' }} onClick={() => setJoinConflict(null)}>
+                取消
+              </button>
             </div>
           </div>
         </div>
