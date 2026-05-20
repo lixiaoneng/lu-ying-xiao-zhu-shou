@@ -52,7 +52,10 @@ export default function App() {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (channelRef.current) unsubscribe(channelRef.current);
+      if (channelRef.current) {
+        console.log('[App] unmount cleanup: unsubscribing channel');
+        unsubscribe(channelRef.current);
+      }
       if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
       if (syncStatusTimerRef.current) clearTimeout(syncStatusTimerRef.current);
     };
@@ -88,6 +91,7 @@ export default function App() {
 
     // Cleanup previous subscription
     if (channelRef.current) {
+      console.log('[App] openPlan: cleaning up previous channel before re-subscribe');
       unsubscribe(channelRef.current);
       channelRef.current = null;
     }
@@ -99,6 +103,8 @@ export default function App() {
     setActivePlanId(id);
     setSyncStatus('idle');
 
+    console.log(`[App] openPlan: id=${id} effectiveCode=${effectiveCode} supabaseConfigured=${isSupabaseConfigured()}`);
+
     if (effectiveCode && isSupabaseConfigured()) {
       // Fetch latest from cloud; use functional setPlan so the comparison is never stale
       // even if the network round-trip takes longer than expected
@@ -107,6 +113,7 @@ export default function App() {
         setPlan(prev => {
           const current = prev ?? p;
           if (cloudPlan.updatedAt > current.updatedAt) {
+            console.log('[App] openPlan fetch: cloud is newer, updating local state');
             savePlan(cloudPlan);
             return cloudPlan;
           }
@@ -116,9 +123,13 @@ export default function App() {
 
       // Realtime: fires only when another user pushes a change; still check timestamp
       // so a late-arriving push doesn't roll back a local edit the current user just made
+      console.log(`[App] openPlan: subscribing to Realtime for plan ${p.id}`);
       channelRef.current = subscribeToPlan(p.id, (updated) => {
+        console.log('[App] Realtime callback fired, updated.updatedAt:', updated.updatedAt);
         setPlan(prev => {
-          if (!prev || updated.updatedAt > prev.updatedAt) {
+          const willUpdate = !prev || updated.updatedAt > prev.updatedAt;
+          console.log(`[App] Realtime: prev.updatedAt=${prev?.updatedAt} updated.updatedAt=${updated.updatedAt} willUpdate=${willUpdate}`);
+          if (willUpdate) {
             savePlan(updated);
             return updated;
           }
@@ -178,6 +189,7 @@ export default function App() {
 
   const goHome = useCallback(() => {
     if (channelRef.current) {
+      console.log('[App] goHome: unsubscribing channel');
       unsubscribe(channelRef.current);
       channelRef.current = null;
     }
