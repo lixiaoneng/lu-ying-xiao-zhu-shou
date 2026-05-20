@@ -153,29 +153,45 @@ export default function Home({ onOpenPlan }: Props) {
     <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
 
       {/* ── Hero ───────────────────────────────────── */}
-      <div style={{ padding: '64px 24px 40px', position: 'relative' }}>
-        {/* Top-right utility icons */}
-        <div style={{ position: 'absolute', top: 20, right: 20, display: 'flex', gap: 4 }}>
+      <div style={{
+        background: 'linear-gradient(150deg, #2E5540 0%, #3D6B50 40%, #4A7D5E 70%, #6A9E7C 100%)',
+        padding: '52px 24px 44px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        {/* Decorative circles — CSS only, no images */}
+        <div style={{ position: 'absolute', top: -70, right: -70, width: 240, height: 240, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: -50, left: -50, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,200,100,0.10)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: 52, right: 88, width: 52, height: 52, borderRadius: '50%', background: 'rgba(255,225,80,0.16)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: 18, left: '42%', width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.10)', pointerEvents: 'none' }} />
+
+        {/* Top-right utility — white on dark */}
+        <div style={{ position: 'absolute', top: 18, right: 16, display: 'flex', gap: 6, zIndex: 2 }}>
           {cloudEnabled && (
             <div style={{
               display: 'flex', alignItems: 'center', gap: 5,
-              fontSize: 12, color: 'var(--primary)',
-              background: 'var(--primary-dim)',
-              border: '1px solid var(--primary-border)',
+              fontSize: 12, color: 'rgba(255,255,255,0.92)',
+              background: 'rgba(255,255,255,0.14)',
               borderRadius: 'var(--radius-pill)',
               padding: '5px 10px',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
             }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--primary)', display: 'inline-block' }} />
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#88EDAA', display: 'inline-block' }} />
               实时同步
             </div>
           )}
           <button
             onClick={() => fileRef.current?.click()}
             style={{
-              border: 'none', background: 'var(--bg-soft)', cursor: 'pointer',
+              border: 'none',
+              background: 'rgba(255,255,255,0.14)',
+              cursor: 'pointer',
               width: 32, height: 32, borderRadius: '50%',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 15, color: 'var(--text-2)',
+              fontSize: 15, color: 'rgba(255,255,255,0.88)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
             }}
             title="导入 JSON"
           >↓</button>
@@ -183,27 +199,28 @@ export default function Home({ onOpenPlan }: Props) {
         </div>
 
         {/* Brand */}
-        <div style={{ fontSize: 40, marginBottom: 16, lineHeight: 1 }}>⛺</div>
-        <h1 style={{
-          fontFamily: "'Noto Serif SC', serif",
-          fontSize: 34,
-          fontWeight: 700,
-          color: 'var(--text)',
-          letterSpacing: '-0.02em',
-          lineHeight: 1.15,
-          marginBottom: 10,
-        }}>
-          一起去露营
-        </h1>
-        <p style={{
-          fontSize: 16,
-          color: 'var(--text-2)',
-          fontWeight: 300,
-          letterSpacing: '0.01em',
-          lineHeight: 1.5,
-        }}>
-          有组织地松弛一下
-        </p>
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{
+            fontSize: 50, marginBottom: 14, lineHeight: 1,
+            filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.20))',
+          }}>⛺</div>
+          <h1 style={{
+            fontFamily: "'Noto Serif SC', serif",
+            fontSize: 34, fontWeight: 700,
+            color: 'white',
+            letterSpacing: '-0.02em', lineHeight: 1.15,
+            marginBottom: 8,
+            textShadow: '0 2px 14px rgba(0,0,0,0.18)',
+          }}>
+            一起去露营
+          </h1>
+          <p style={{
+            fontSize: 15, color: 'rgba(255,255,255,0.76)',
+            fontWeight: 300, letterSpacing: '0.03em',
+          }}>
+            有组织地松弛一下
+          </p>
+        </div>
       </div>
 
       {/* ── Actions ────────────────────────────────── */}

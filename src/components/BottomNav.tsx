@@ -52,17 +52,21 @@ export default function BottomNav() {
               flexDirection: 'column',
               alignItems: 'center',
               gap: 3,
-              padding: active ? '6px 14px' : '6px 6px',
+              padding: active ? '7px 16px' : '6px 6px',
               borderRadius: 14,
-              background: active ? 'var(--primary-dim)' : 'transparent',
-              transition: 'all 0.22s cubic-bezier(0.34,1.56,0.64,1)',
-              minWidth: active ? 52 : 32,
+              background: active
+                ? 'linear-gradient(145deg, #D8EDE2 0%, #C4DDD0 100%)'
+                : 'transparent',
+              boxShadow: active ? '0 2px 10px rgba(60,110,80,0.18)' : 'none',
+              transition: 'all 0.24s cubic-bezier(0.34,1.56,0.64,1)',
+              minWidth: active ? 56 : 32,
+              transform: active ? 'translateY(-1px)' : 'translateY(0)',
             }}>
               <span style={{
-                fontSize: active ? 20 : 17,
+                fontSize: active ? 21 : 17,
                 lineHeight: 1,
-                transition: 'font-size 0.22s ease',
-                opacity: active ? 1 : 0.45,
+                transition: 'font-size 0.22s ease, transform 0.22s ease',
+                opacity: active ? 1 : 0.40,
               }}>
                 {tab.icon}
               </span>

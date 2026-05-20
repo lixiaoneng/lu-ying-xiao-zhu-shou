@@ -229,189 +229,151 @@ function ShareCard({ plan }: { plan: CampingPlan }) {
     members: plan.people.filter(p => p.familyId === f.id),
   })).filter(g => g.members.length > 0);
 
-  const hasSections = peopleByFamily.length > 0
-    || personalByFamily.length > 0
-    || foodByFamily.length > 0
-    || gearByFamily.length > 0
-    || (s && s.totalAmount > 0);
-
   return (
     <div style={{
-      background: '#FAF5EE',
+      background: '#FAF6F0',
       borderRadius: 'var(--radius)',
-      border: '1px solid var(--accent-border)',
-      padding: '20px 18px',
-      boxShadow: '0 2px 24px rgba(184,107,74,0.08)',
+      border: '1px solid #DDD0BC',
+      overflow: 'hidden',
+      boxShadow: '0 3px 28px rgba(80,60,30,0.09)',
       marginBottom: 4,
     }}>
-      {/* Header */}
-      <div style={{ marginBottom: hasSections ? 14 : 0 }}>
-        <div style={{
-          fontFamily: "'Noto Serif SC', serif",
-          fontSize: 20, fontWeight: 700,
-          color: 'var(--text)',
-          letterSpacing: '-0.01em',
-          lineHeight: 1.3,
-        }}>
-          ⛺ {plan.name}
-        </div>
-        {(plan.date || plan.location) && (
+      {/* ── Gradient header ── */}
+      <div style={{
+        background: 'linear-gradient(135deg, #2E5540 0%, #3D6B50 45%, #5A8A6A 100%)',
+        padding: '20px 18px 22px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        {/* Decorative circles */}
+        <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.09)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: -20, left: -20, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,210,80,0.12)', pointerEvents: 'none' }} />
+
+        <div style={{ position: 'relative', zIndex: 1 }}>
           <div style={{
-            display: 'flex', flexWrap: 'wrap', gap: 8,
-            marginTop: 6, fontSize: 13, color: 'var(--text-muted)',
+            fontFamily: "'Noto Serif SC', serif",
+            fontSize: 20, fontWeight: 700,
+            color: 'white',
+            letterSpacing: '-0.01em', lineHeight: 1.3,
+            textShadow: '0 1px 8px rgba(0,0,0,0.15)',
           }}>
-            {plan.date && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                📅 {formatDate(plan.date)}
-              </span>
-            )}
-            {plan.location && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                📍 {plan.location}
-              </span>
-            )}
+            ⛺ {plan.name}
           </div>
-        )}
+          {(plan.date || plan.location) && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 8, fontSize: 13, color: 'rgba(255,255,255,0.80)' }}>
+              {plan.date && <span>📅 {formatDate(plan.date)}</span>}
+              {plan.location && <span>📍 {plan.location}</span>}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Sections */}
-      {hasSections && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+      {/* ── Content sections ── */}
+      <div style={{ padding: '4px 18px 18px' }}>
 
-          {/* Participants */}
-          {peopleByFamily.length > 0 && (
-            <CardSection icon="👥" title="参与人员">
-              {peopleByFamily.map(({ family, members }) => (
-                <CardRow key={family.id} label={family.name} value={members.map(m => m.name).join('、')} />
-              ))}
-            </CardSection>
-          )}
+        {peopleByFamily.length > 0 && (
+          <CardSection icon="👥" title="参与人员" color="#3D6B50">
+            {peopleByFamily.map(({ family, members }) => (
+              <CardRow key={family.id} label={family.name} value={members.map(m => m.name).join('、')} />
+            ))}
+          </CardSection>
+        )}
 
-          {/* Menu */}
-          {plan.menuItems.length > 0 && (
-            <CardSection icon="🍽" title="菜单安排">
-              {Object.entries(
-                plan.menuItems.reduce<Record<string, typeof plan.menuItems>>((acc, item) => {
-                  (acc[item.time] = acc[item.time] || []).push(item);
-                  return acc;
-                }, {})
-              ).map(([time, items]) => (
-                <CardRow
-                  key={time}
-                  label={time}
-                  value={items.map(i => `${i.meal} ${i.menu}`).join(' / ')}
-                />
-              ))}
-            </CardSection>
-          )}
+        {plan.menuItems.length > 0 && (
+          <CardSection icon="🍽" title="菜单安排" color="#C07040">
+            {Object.entries(
+              plan.menuItems.reduce<Record<string, typeof plan.menuItems>>((acc, item) => {
+                (acc[item.time] = acc[item.time] || []).push(item);
+                return acc;
+              }, {})
+            ).map(([time, items]) => (
+              <CardRow key={time} label={time} value={items.map(i => `${i.meal} ${i.menu}`).join(' / ')} />
+            ))}
+          </CardSection>
+        )}
 
-          {/* Personal supplies */}
-          {personalByFamily.length > 0 && (
-            <CardSection icon="🎒" title="各家自带">
-              {personalByFamily.map(({ family, items }) => (
-                <CardRow
-                  key={family.id}
-                  label={family.name}
-                  value={items.map(s => s.name + (s.quantity ? `(${s.quantity})` : '')).join('、')}
-                />
-              ))}
-            </CardSection>
-          )}
+        {personalByFamily.length > 0 && (
+          <CardSection icon="🎒" title="各家自带" color="#8A6A2A">
+            {personalByFamily.map(({ family, items }) => (
+              <CardRow key={family.id} label={family.name} value={items.map(s => s.name + (s.quantity ? `(${s.quantity})` : '')).join('、')} />
+            ))}
+          </CardSection>
+        )}
 
-          {/* Food */}
-          {foodByFamily.length > 0 && (
-            <CardSection icon="🍖" title="公共食材">
-              {foodByFamily.map(({ family, items }) => (
-                <CardRow
-                  key={family.id}
-                  label={family.name}
-                  value={items.map(s => s.name + (s.quantity ? `(${s.quantity})` : '')).join('、')}
-                />
-              ))}
-            </CardSection>
-          )}
+        {foodByFamily.length > 0 && (
+          <CardSection icon="🍖" title="公共食材" color="#B85830">
+            {foodByFamily.map(({ family, items }) => (
+              <CardRow key={family.id} label={family.name} value={items.map(s => s.name + (s.quantity ? `(${s.quantity})` : '')).join('、')} />
+            ))}
+          </CardSection>
+        )}
 
-          {/* Gear */}
-          {gearByFamily.length > 0 && (
-            <CardSection icon="⛺" title="营地装备">
-              {gearByFamily.map(({ family, items }) => (
-                <CardRow
-                  key={family.id}
-                  label={family.name}
-                  value={items.map(s => s.name + (s.quantity ? `(${s.quantity})` : '')).join('、')}
-                />
-              ))}
-            </CardSection>
-          )}
+        {gearByFamily.length > 0 && (
+          <CardSection icon="⛺" title="营地装备" color="#2E6048">
+            {gearByFamily.map(({ family, items }) => (
+              <CardRow key={family.id} label={family.name} value={items.map(s => s.name + (s.quantity ? `(${s.quantity})` : '')).join('、')} />
+            ))}
+          </CardSection>
+        )}
 
-          {/* AA */}
-          {s && s.totalAmount > 0 && (
-            <CardSection icon="💰" title="AA 费用">
-              <div style={{ fontSize: 14, color: 'var(--text)', fontWeight: 600, marginBottom: 4 }}>
-                合计 ¥{s.totalAmount.toFixed(0)}
-                <span style={{ fontWeight: 400, fontSize: 13, color: 'var(--text-muted)', marginLeft: 8 }}>
-                  {s.aaMode === 'person'
-                    ? `每人 ¥${s.perUnit.toFixed(0)}`
-                    : `每家 ¥${s.perUnit.toFixed(0)}`}
-                </span>
+        {s && s.totalAmount > 0 && (
+          <CardSection icon="💰" title="AA 费用" color="#7A5820">
+            <div style={{ fontSize: 14, color: '#5A3800', fontWeight: 700, marginBottom: 4 }}>
+              合计 ¥{s.totalAmount.toFixed(0)}
+              <span style={{ fontWeight: 400, fontSize: 13, color: '#8A6020', marginLeft: 8 }}>
+                {s.aaMode === 'person' ? `每人 ¥${s.perUnit.toFixed(0)}` : `每家 ¥${s.perUnit.toFixed(0)}`}
+              </span>
+            </div>
+            {s.transactions.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 4 }}>
+                {s.transactions.map((tx, i) => (
+                  <div key={i} style={{ fontSize: 13, color: '#6A4A10' }}>
+                    {tx.fromFamilyName}
+                    <span style={{ margin: '0 6px', color: '#C07040' }}>→</span>
+                    {tx.toFamilyName}
+                    <span style={{ marginLeft: 6, fontWeight: 700 }}>¥{tx.amount.toFixed(0)}</span>
+                  </div>
+                ))}
               </div>
-              {s.transactions.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 4 }}>
-                  {s.transactions.map((tx, i) => (
-                    <div key={i} style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                      {tx.fromFamilyName}
-                      <span style={{ margin: '0 5px', color: 'var(--accent)' }}>→</span>
-                      {tx.toFamilyName}
-                      <span style={{ marginLeft: 6, color: 'var(--text)', fontWeight: 600 }}>
-                        ¥{tx.amount.toFixed(0)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {s.transactions.length === 0 && (
-                <div style={{ fontSize: 13, color: 'var(--green)', fontWeight: 500 }}>
-                  完美平衡，无需转账 ✓
-                </div>
-              )}
-            </CardSection>
-          )}
-        </div>
-      )}
+            )}
+            {s.transactions.length === 0 && (
+              <div style={{ fontSize: 13, color: '#2E6048', fontWeight: 600 }}>完美平衡，无需转账 ✓</div>
+            )}
+          </CardSection>
+        )}
 
-      {/* Footer */}
-      <div style={{
-        marginTop: 16,
-        paddingTop: 12,
-        borderTop: '1px dashed var(--border)',
-        fontSize: 11,
-        color: 'var(--text-light)',
-        textAlign: 'center',
-        letterSpacing: '0.04em',
-      }}>
-        📱 由「一起去露营」整理
+        {/* Footer */}
+        <div style={{
+          marginTop: 16, paddingTop: 12,
+          borderTop: '1px dashed #D8C8B0',
+          fontSize: 11, color: '#A89070',
+          textAlign: 'center', letterSpacing: '0.05em',
+        }}>
+          📱 由「一起去露营」整理
+        </div>
       </div>
     </div>
   );
 }
 
 function CardSection({
-  icon, title, children,
+  icon, title, color, children,
 }: {
-  icon: string; title: string; children: React.ReactNode;
+  icon: string; title: string; color: string; children: React.ReactNode;
 }) {
+  // Build a very light tint from the color for the pill bg
   return (
-    <div style={{
-      paddingTop: 12, marginTop: 12,
-      borderTop: '1px solid #E8E0D0',
-    }}>
+    <div style={{ paddingTop: 14, marginTop: 14, borderTop: '1px solid #E8DCC8' }}>
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 5,
-        fontSize: 12, fontWeight: 700, color: 'var(--text-2)',
-        letterSpacing: '0.04em', marginBottom: 8,
+        display: 'inline-flex', alignItems: 'center', gap: 4,
+        background: color + '18',
+        border: `1px solid ${color}30`,
+        borderRadius: 8, padding: '3px 9px',
+        fontSize: 11, fontWeight: 700, color,
+        letterSpacing: '0.04em', marginBottom: 9,
         textTransform: 'uppercase',
       }}>
-        <span style={{ fontSize: 14 }}>{icon}</span>
+        <span style={{ fontSize: 13 }}>{icon}</span>
         {title}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

@@ -9,7 +9,7 @@ const MEAL_PRESETS = ['早餐', '午餐', '晚餐', '晚间饮品', '宵夜', '�
 function responsibleColor(name: string): { bg: string; text: string } {
   const palette = [
     { bg: '#EEF4F0', text: '#3D6B4F' },
-    { bg: '#F0EFEA', text: '#5A5038' },
+    { bg: '#F5F0E8', text: '#7A5A2A' },
     { bg: '#EEF0F5', text: '#3A4E6B' },
     { bg: '#F4EFEE', text: '#6B3A3A' },
     { bg: '#F0EEF5', text: '#4E3A6B' },
@@ -20,6 +20,41 @@ function responsibleColor(name: string): { bg: string; text: string } {
   let h = 0;
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xff;
   return palette[h % palette.length];
+}
+
+/* ── Section icon badge ────────────────────────────────────── */
+function SectionBadge({ emoji, bg }: { emoji: string; bg: string }) {
+  return (
+    <div style={{
+      width: 30, height: 30, borderRadius: 9,
+      background: bg,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: 16, flexShrink: 0,
+    }}>
+      {emoji}
+    </div>
+  );
+}
+
+/* ── Section container ─────────────────────────────────────── */
+function SectionCard({
+  bg, border, children, style,
+}: {
+  bg: string; border: string; children: React.ReactNode; style?: React.CSSProperties;
+}) {
+  return (
+    <section style={{
+      background: bg,
+      borderRadius: 'var(--radius)',
+      padding: '18px',
+      border: `1px solid ${border}`,
+      boxShadow: 'var(--shadow-sm)',
+      marginBottom: 12,
+      ...style,
+    }}>
+      {children}
+    </section>
+  );
 }
 
 export default function OverviewTab() {
@@ -144,11 +179,9 @@ export default function OverviewTab() {
           <label className="form-label">计划名称</label>
           <input className="input" value={name} onChange={e => { setName(e.target.value); setDirty(true); }} placeholder="露营计划名称" />
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <div className="form-group" style={{ flex: 1 }}>
-            <label className="form-label">日期</label>
-            <input className="input" type="date" value={date} onChange={e => { setDate(e.target.value); setDirty(true); }} />
-          </div>
+        <div className="form-group" style={{ flex: 1 }}>
+          <label className="form-label">日期</label>
+          <input className="input" type="date" value={date} onChange={e => { setDate(e.target.value); setDirty(true); }} />
         </div>
         <div className="form-group" style={{ marginBottom: 0 }}>
           <label className="form-label">地点</label>
@@ -156,40 +189,46 @@ export default function OverviewTab() {
         </div>
       </section>
 
-      {/* ── Stats (if have data) ─────────────────── */}
+      {/* ── Stats ─────────────────────────────────── */}
       {plan.families.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
           {[
-            { label: '家庭', value: plan.families.length },
-            { label: '成员', value: plan.people.length },
-            { label: '物资', value: plan.supplies.length },
+            { label: '家庭', value: plan.families.length, color: '#3D6B4F', bg: '#EBF5EE', border: '#B8D8C4' },
+            { label: '成员', value: plan.people.length,   color: '#A85A30', bg: '#FAF0E8', border: '#E8C4A0' },
+            { label: '物资', value: plan.supplies.length, color: '#7A6020', bg: '#FAF5E4', border: '#DDD098' },
           ].map(s => (
             <div key={s.label} style={{
-              background: 'var(--card)', borderRadius: 'var(--radius-sm)',
-              padding: '14px 10px', textAlign: 'center', border: '1px solid var(--border)',
-              boxShadow: 'var(--shadow-sm)',
+              background: s.bg,
+              borderRadius: 'var(--radius-sm)',
+              padding: '14px 10px',
+              textAlign: 'center',
+              border: `1px solid ${s.border}`,
             }}>
               <div style={{
-                fontSize: 26, fontFamily: "'Noto Serif SC', serif",
-                fontWeight: 700, color: 'var(--primary)',
+                fontSize: 28, fontFamily: "'Noto Serif SC', serif",
+                fontWeight: 700, color: s.color, lineHeight: 1,
               }}>
                 {s.value}
               </div>
-              <div style={{ fontSize: 12, color: 'var(--text-light)', marginTop: 2 }}>{s.label}</div>
+              <div style={{ fontSize: 12, color: s.color, opacity: 0.7, marginTop: 4 }}>{s.label}</div>
             </div>
           ))}
         </div>
       )}
 
       {/* ── Menu ─────────────────────────────────── */}
-      <section className="card" style={{ marginBottom: 12 }}>
-        <div className="section-header">
-          <span className="section-title">🍽 露营菜单</span>
+      {/* Warm cream — food energy */}
+      <SectionCard bg="#FBF8F0" border="#E8DECA">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <SectionBadge emoji="🍽" bg="#C07840" />
+            <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>露营菜单</span>
+          </div>
           <button className="btn btn-secondary btn-sm" onClick={openAddMenu}>＋ 添加</button>
         </div>
 
         {plan.menuItems.length === 0 ? (
-          <div className="empty-state" style={{ padding: '20px 0' }}>
+          <div className="empty-state" style={{ padding: '16px 0' }}>
             <div className="empty-icon" style={{ fontSize: 28 }}>🥩</div>
             <p style={{ fontSize: 13 }}>还没有菜单安排<br />添加后作为公告展示给所有人</p>
           </div>
@@ -199,9 +238,9 @@ export default function OverviewTab() {
               <div key={group.time}>
                 <div style={{
                   display: 'inline-flex', alignItems: 'center',
-                  background: 'var(--primary-dim)', color: 'var(--primary)',
+                  background: '#E8D4B8', color: '#7A4A20',
                   borderRadius: 'var(--radius-pill)', padding: '3px 12px',
-                  fontSize: 12, fontWeight: 600, marginBottom: 8, letterSpacing: '0.02em',
+                  fontSize: 12, fontWeight: 700, marginBottom: 8, letterSpacing: '0.03em',
                 }}>
                   {group.time}
                 </div>
@@ -211,13 +250,13 @@ export default function OverviewTab() {
                     return (
                       <div key={item.id} style={{
                         display: 'flex', alignItems: 'center', gap: 10,
-                        background: 'var(--bg)', border: '1px solid var(--border)',
+                        background: 'white', border: '1px solid #EDE0CC',
                         borderRadius: 'var(--radius-xs)', padding: '10px 12px',
                       }}>
                         <span style={{
                           flexShrink: 0, fontSize: 11, fontWeight: 600,
-                          color: 'var(--text-2)', background: 'var(--card)',
-                          border: '1px solid var(--border)',
+                          color: '#9A6030', background: '#F5E8D8',
+                          border: '1px solid #E8D0B0',
                           borderRadius: 'var(--radius-pill)', padding: '2px 9px', whiteSpace: 'nowrap',
                         }}>
                           {item.meal}
@@ -244,16 +283,20 @@ export default function OverviewTab() {
             ))}
           </div>
         )}
-      </section>
+      </SectionCard>
 
       {/* ── Families ─────────────────────────────── */}
-      <section className="card" style={{ marginBottom: 12 }}>
-        <div className="section-header">
-          <span className="section-title">🏠 家庭 / 小组</span>
+      {/* Sage green — community, belonging */}
+      <SectionCard bg="#EEF6F1" border="#C0DDC8">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <SectionBadge emoji="🏠" bg="#3D6B4F" />
+            <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>家庭 / 小组</span>
+          </div>
           <button className="btn btn-secondary btn-sm" onClick={openAddFamily}>＋ 添加</button>
         </div>
         {plan.families.length === 0 ? (
-          <div className="empty-state" style={{ padding: '20px 0' }}>
+          <div className="empty-state" style={{ padding: '16px 0' }}>
             <p style={{ fontSize: 13 }}>先添加家庭或小组<br />再邀请成员和安排物资</p>
           </div>
         ) : (
@@ -263,8 +306,8 @@ export default function OverviewTab() {
               return (
                 <div key={f.id} style={{
                   display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '12px 14px', background: 'var(--bg)',
-                  borderRadius: 'var(--radius-xs)', border: '1px solid var(--border)',
+                  padding: '12px 14px', background: 'white',
+                  borderRadius: 'var(--radius-xs)', border: '1px solid #C8DDD2',
                 }}>
                   <div style={{
                     width: 38, height: 38, borderRadius: 12,
@@ -288,12 +331,16 @@ export default function OverviewTab() {
             })}
           </div>
         )}
-      </section>
+      </SectionCard>
 
       {/* ── People ───────────────────────────────── */}
-      <section className="card" style={{ marginBottom: 16 }}>
-        <div className="section-header">
-          <span className="section-title">👥 参与成员</span>
+      {/* Warm peach — people, warmth */}
+      <SectionCard bg="#FBF3EF" border="#E0C4B4" style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <SectionBadge emoji="👥" bg="#C06840" />
+            <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>参与成员</span>
+          </div>
           <button
             className="btn btn-secondary btn-sm"
             onClick={openAddPerson}
@@ -309,7 +356,7 @@ export default function OverviewTab() {
         )}
 
         {plan.people.length === 0 && plan.families.length > 0 ? (
-          <div className="empty-state" style={{ padding: '20px 0' }}>
+          <div className="empty-state" style={{ padding: '16px 0' }}>
             <p style={{ fontSize: 13 }}>把这次要去露营的小伙伴都加上吧</p>
           </div>
         ) : (
@@ -319,21 +366,24 @@ export default function OverviewTab() {
               if (members.length === 0) return null;
               return (
                 <div key={fam.id}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-light)', letterSpacing: '0.08em', marginBottom: 8, textTransform: 'uppercase' }}>
+                  <div style={{
+                    fontSize: 11, fontWeight: 700, color: '#B06840',
+                    letterSpacing: '0.08em', marginBottom: 8, textTransform: 'uppercase',
+                  }}>
                     {fam.name}
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
                     {members.map(person => (
                       <div key={person.id} style={{
                         display: 'flex', alignItems: 'center', gap: 7,
-                        background: 'var(--bg)', border: '1px solid var(--border)',
+                        background: 'white', border: '1px solid #E0C4B4',
                         borderRadius: 'var(--radius-pill)', padding: '6px 10px 6px 8px',
                       }}>
                         <div style={{
                           width: 24, height: 24, borderRadius: '50%',
-                          background: 'var(--primary-dim)', color: 'var(--primary)',
+                          background: '#F5E4DC', color: '#C06840',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 12, fontWeight: 600, flexShrink: 0,
+                          fontSize: 12, fontWeight: 700, flexShrink: 0,
                         }}>
                           {person.name.slice(0, 1)}
                         </div>
@@ -348,7 +398,7 @@ export default function OverviewTab() {
             })}
           </div>
         )}
-      </section>
+      </SectionCard>
 
       {/* ── Modals ───────────────────────────────── */}
       <Modal
