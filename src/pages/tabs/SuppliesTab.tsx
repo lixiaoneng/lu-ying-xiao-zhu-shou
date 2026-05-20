@@ -11,6 +11,18 @@ const SUPPLY_ACCENT: Record<SupplyType, string> = {
   gear: '#5B7FA8',
 };
 
+// Warm, earthy palette for family tags — up to 8 families
+const FAMILY_COLORS: { bg: string; text: string; border: string }[] = [
+  { bg: '#FDEBD0', text: '#A84E10', border: '#F0C090' }, // amber
+  { bg: '#E0EFE6', text: '#2E6B48', border: '#A8D4B8' }, // forest green
+  { bg: '#E0EAF5', text: '#3A5F8A', border: '#A8C0E0' }, // slate blue
+  { bg: '#F5E6E0', text: '#8A3A2E', border: '#E0A898' }, // terracotta
+  { bg: '#EDE8F5', text: '#5A3A8A', border: '#C0A8E0' }, // lavender
+  { bg: '#EBF0DC', text: '#4A5E28', border: '#C0D098' }, // olive
+  { bg: '#DCF0EF', text: '#226060', border: '#98D0CE' }, // teal
+  { bg: '#F0EAE0', text: '#6A5040', border: '#D0B898' }, // warm brown
+];
+
 export default function SuppliesTab() {
   const { plan, updatePlan, toast } = useApp();
   const [activeType, setActiveType] = useState<SupplyType>('personal');
@@ -27,6 +39,9 @@ export default function SuppliesTab() {
   const [fPrice, setFPrice] = useState('');
 
   const familyMap = Object.fromEntries(plan.families.map(f => [f.id, f.name]));
+  const familyColorMap = Object.fromEntries(
+    plan.families.map((f, i) => [f.id, FAMILY_COLORS[i % FAMILY_COLORS.length]])
+  );
 
   const filtered = plan.supplies
     .filter(s => s.type === activeType)
@@ -182,6 +197,7 @@ export default function SuppliesTab() {
                       key={s.id}
                       supply={s}
                       familyName={familyMap[s.assigneeId] ?? '未指定'}
+                      familyColor={familyColorMap[s.assigneeId]}
                       accent={accent}
                       onToggle={() => toggleReady(s.id)}
                       onEdit={() => openEdit(s)}
@@ -292,13 +308,14 @@ export default function SuppliesTab() {
 interface CardProps {
   supply: Supply;
   familyName: string;
+  familyColor?: { bg: string; text: string; border: string };
   accent: string;
   onToggle: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-function SupplyCard({ supply: s, familyName, accent, onToggle, onEdit, onDelete }: CardProps) {
+function SupplyCard({ supply: s, familyName, familyColor, accent, onToggle, onEdit, onDelete }: CardProps) {
   return (
     <div style={{
       background: 'var(--card)',
@@ -336,7 +353,13 @@ function SupplyCard({ supply: s, familyName, accent, onToggle, onEdit, onDelete 
           )}
         </div>
         <div style={{ display: 'flex', gap: 5, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
-          <span className="tag tag-gray">{familyName}</span>
+          <span
+            className="tag"
+            style={familyColor
+              ? { background: familyColor.bg, color: familyColor.text, border: `1px solid ${familyColor.border}` }
+              : { background: 'var(--bg-warm)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
+            }
+          >{familyName}</span>
           {s.needsAA && (
             <span className="tag tag-orange">
               AA{s.price != null ? ` ¥${s.price}` : ''}
