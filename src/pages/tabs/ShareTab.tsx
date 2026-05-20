@@ -20,8 +20,15 @@ export default function ShareTab() {
     const lines: string[] = [];
 
     lines.push(`🏕️ ${plan.name}`);
-    if (plan.date) lines.push(`📅 ${formatDate(plan.date)}`);
-    if (plan.location) lines.push(`📍 ${plan.location}`);
+
+    // Date + location on one line if both present
+    if (plan.date && plan.location) {
+      lines.push(`📅 ${formatDate(plan.date)}　📍 ${plan.location}`);
+    } else if (plan.date) {
+      lines.push(`📅 ${formatDate(plan.date)}`);
+    } else if (plan.location) {
+      lines.push(`📍 ${plan.location}`);
+    }
     lines.push('');
 
     if (plan.people.length > 0) {
@@ -29,8 +36,23 @@ export default function ShareTab() {
       plan.families.forEach(fam => {
         const members = plan.people.filter(p => p.familyId === fam.id);
         if (members.length > 0) {
-          lines.push(`  ${fam.name}：${members.map(m => m.name).join('、')}`);
+          lines.push(`${fam.name}：${members.map(m => m.name).join('、')}`);
         }
+      });
+      lines.push('');
+    }
+
+    if (plan.menuItems.length > 0) {
+      lines.push('🍽 菜单安排');
+      const groups: Record<string, typeof plan.menuItems> = {};
+      plan.menuItems.forEach(item => {
+        (groups[item.time] = groups[item.time] || []).push(item);
+      });
+      Object.entries(groups).forEach(([time, items]) => {
+        items.forEach(item => {
+          const resp = item.responsible ? `（${item.responsible}负责）` : '';
+          lines.push(`[${time}] ${item.meal}：${item.menu}${resp}`);
+        });
       });
       lines.push('');
     }
@@ -41,7 +63,7 @@ export default function ShareTab() {
       plan.families.forEach(fam => {
         const items = personal.filter(s => s.assigneeId === fam.id);
         if (items.length > 0) {
-          lines.push(`  ${fam.name}：${items.map(s => s.name + (s.quantity ? `(${s.quantity})` : '')).join('、')}`);
+          lines.push(`${fam.name}：${items.map(s => s.name + (s.quantity ? `(${s.quantity})` : '')).join('、')}`);
         }
       });
       lines.push('');
@@ -53,7 +75,7 @@ export default function ShareTab() {
       plan.families.forEach(fam => {
         const items = food.filter(s => s.assigneeId === fam.id);
         if (items.length > 0) {
-          lines.push(`  ${fam.name}负责：${items.map(s => s.name + (s.quantity ? `(${s.quantity})` : '')).join('、')}`);
+          lines.push(`${fam.name}负责：${items.map(s => s.name + (s.quantity ? `(${s.quantity})` : '')).join('、')}`);
         }
       });
       lines.push('');
@@ -65,7 +87,7 @@ export default function ShareTab() {
       plan.families.forEach(fam => {
         const items = gear.filter(s => s.assigneeId === fam.id);
         if (items.length > 0) {
-          lines.push(`  ${fam.name}携带：${items.map(s => s.name + (s.quantity ? `(${s.quantity})` : '')).join('、')}`);
+          lines.push(`${fam.name}携带：${items.map(s => s.name + (s.quantity ? `(${s.quantity})` : '')).join('、')}`);
         }
       });
       lines.push('');
@@ -84,13 +106,13 @@ export default function ShareTab() {
             : fb.balance < -0.01
               ? `待付 ¥${Math.abs(fb.balance).toFixed(0)}`
               : '已平';
-          lines.push(`  ${fb.familyName}：垫付 ¥${fb.paid.toFixed(0)}（${sign}）`);
+          lines.push(`${fb.familyName}：垫付 ¥${fb.paid.toFixed(0)}（${sign}）`);
         });
         if (s.transactions.length > 0) {
           lines.push('');
           lines.push('💸 转账方案');
           s.transactions.forEach(tx => {
-            lines.push(`  ${tx.fromFamilyName} → ${tx.toFamilyName}：¥${tx.amount.toFixed(0)}`);
+            lines.push(`${tx.fromFamilyName} → ${tx.toFamilyName}：¥${tx.amount.toFixed(0)}`);
           });
         }
         lines.push('');
@@ -385,11 +407,12 @@ function CardSection({
 
 function CardRow({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ display: 'flex', gap: 10, fontSize: 13, lineHeight: 1.5 }}>
+    <div style={{ display: 'flex', gap: 8, fontSize: 13, lineHeight: 1.5 }}>
       <span style={{
-        flexShrink: 0, minWidth: 52,
+        flexShrink: 0,
         color: 'var(--text-muted)',
         fontWeight: 500,
+        whiteSpace: 'nowrap',
       }}>
         {label}
       </span>

@@ -4,6 +4,14 @@ import { useApp } from '../../App';
 import { generateId } from '../../store';
 import Modal from '../../components/Modal';
 
+const FAMILY_PALETTE = [
+  { bg: '#EEF6F2', border: '#C0DCC8', avatarBg: '#D8EDE2', avatarText: '#3D6B4F', totalColor: '#3D6B4F' },
+  { bg: '#FBF3EF', border: '#E0C4B4', avatarBg: '#F5DDD0', avatarText: '#C06840', totalColor: '#C06840' },
+  { bg: '#FBF9F1', border: '#E8DDCA', avatarBg: '#F0E8CC', avatarText: '#9A6830', totalColor: '#9A6830' },
+  { bg: '#EEF0F6', border: '#C8D0E0', avatarBg: '#D8DCF0', avatarText: '#4A5F8A', totalColor: '#4A5F8A' },
+  { bg: '#F0F6F8', border: '#B8D4DC', avatarBg: '#C8E4EC', avatarText: '#2A6878', totalColor: '#2A6878' },
+];
+
 export default function ExpensesTab() {
   const { plan, updatePlan, toast } = useApp();
   const [showModal, setShowModal] = useState(false);
@@ -211,45 +219,51 @@ export default function ExpensesTab() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {byFamily.map(({ family, expenses, total: fTotal }) => (
-            <div key={family.id}>
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                marginBottom: 8,
+          {byFamily.map(({ family, expenses, total: fTotal }, i) => {
+            const pal = FAMILY_PALETTE[i % FAMILY_PALETTE.length];
+            return (
+              <div key={family.id} style={{
+                background: pal.bg,
+                borderRadius: 'var(--radius-sm)',
+                border: `1px solid ${pal.border}`,
+                padding: '12px',
               }}>
                 <div style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  marginBottom: 10,
                 }}>
-                  <div style={{
-                    width: 24, height: 24, borderRadius: '50%',
-                    background: 'var(--primary-dim)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 12, fontWeight: 600, color: 'var(--primary)',
-                    flexShrink: 0,
-                  }}>
-                    {family.name.slice(0, 1)}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{
+                      width: 26, height: 26, borderRadius: '50%',
+                      background: pal.avatarBg,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 12, fontWeight: 700, color: pal.avatarText,
+                      flexShrink: 0,
+                    }}>
+                      {family.name.slice(0, 1)}
+                    </div>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+                      {family.name}
+                    </span>
                   </div>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
-                    {family.name}
+                  <span style={{ fontSize: 14, fontWeight: 700, color: pal.totalColor }}>
+                    垫付 ¥{fTotal.toFixed(0)}
                   </span>
                 </div>
-                <span style={{ fontSize: 13, color: 'var(--text-2)', fontWeight: 500 }}>
-                  垫付 ¥{fTotal.toFixed(0)}
-                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {expenses.map(e => (
+                    <ExpenseRow
+                      key={e.id}
+                      expense={e}
+                      onEdit={() => openEdit(e)}
+                      onDelete={() => deleteExpense(e.id)}
+                      onToggleAA={() => toggleAA(e.id)}
+                    />
+                  ))}
+                </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {expenses.map(e => (
-                  <ExpenseRow
-                    key={e.id}
-                    expense={e}
-                    onEdit={() => openEdit(e)}
-                    onDelete={() => deleteExpense(e.id)}
-                    onToggleAA={() => toggleAA(e.id)}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
+            );
+          })}
           {uncategorized.length > 0 && (
             <div>
               <div style={{ fontSize: 12, color: 'var(--text-light)', marginBottom: 8 }}>其他</div>
@@ -425,22 +439,25 @@ interface RowProps {
 function ExpenseRow({ expense: e, onEdit, onDelete, onToggleAA }: RowProps) {
   return (
     <div style={{
-      background: e.includeInAA ? 'var(--card)' : 'var(--bg-soft)',
+      background: 'white',
       borderRadius: 'var(--radius-xs)',
-      border: '1px solid var(--border)',
-      padding: '10px 12px',
+      border: '1px solid rgba(0,0,0,0.07)',
+      padding: '11px 12px',
       display: 'flex',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       gap: 10,
     }}>
+      {/* Left: item name / note / AA tag stacked */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-          <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--text)' }}>{e.item}</span>
-          {e.note && (
-            <span style={{ fontSize: 12, color: 'var(--text-light)' }}>{e.note}</span>
-          )}
+        <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--text)', lineHeight: 1.4 }}>
+          {e.item}
         </div>
-        <div style={{ marginTop: 4 }}>
+        {e.note && (
+          <div style={{ fontSize: 12, color: 'var(--text-light)', marginTop: 2, lineHeight: 1.4 }}>
+            {e.note}
+          </div>
+        )}
+        <div style={{ marginTop: 6 }}>
           {e.includeInAA ? (
             <span className="tag" style={{
               background: 'var(--accent-dim)',
@@ -453,36 +470,32 @@ function ExpenseRow({ expense: e, onEdit, onDelete, onToggleAA }: RowProps) {
         </div>
       </div>
 
+      {/* Right: amount on top, action buttons below */}
       <div style={{
-        fontSize: 17, fontWeight: 700, color: 'var(--text)',
-        fontFamily: "'Noto Serif SC', serif",
         flexShrink: 0,
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'flex-end', gap: 8,
       }}>
-        ¥{e.amount.toFixed(0)}
+        <div style={{
+          fontSize: 18, fontWeight: 700, color: 'var(--text)',
+          fontFamily: "'Noto Serif SC', serif",
+          lineHeight: 1,
+        }}>
+          ¥{e.amount.toFixed(0)}
+        </div>
+        <div style={{ display: 'flex', gap: 2 }}>
+          <button
+            className="btn-icon"
+            onClick={onToggleAA}
+            style={{ fontSize: 13, color: 'var(--text-light)' }}
+            title="切换 AA"
+          >
+            ⇌
+          </button>
+          <button className="btn-icon" onClick={onEdit} style={{ fontSize: 15 }}>✏️</button>
+          <button className="btn-icon" onClick={onDelete} style={{ fontSize: 14, color: 'var(--text-light)' }}>✕</button>
+        </div>
       </div>
-
-      <button
-        className="btn-icon"
-        onClick={onToggleAA}
-        style={{ fontSize: 13, color: 'var(--text-light)' }}
-        title="切换 AA"
-      >
-        ⇌
-      </button>
-      <button
-        className="btn-icon"
-        onClick={onEdit}
-        style={{ fontSize: 15 }}
-      >
-        ✏️
-      </button>
-      <button
-        className="btn-icon"
-        onClick={onDelete}
-        style={{ fontSize: 14, color: 'var(--text-light)' }}
-      >
-        ✕
-      </button>
     </div>
   );
 }

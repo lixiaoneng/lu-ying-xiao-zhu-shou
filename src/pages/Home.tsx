@@ -224,7 +224,7 @@ export default function Home({ onOpenPlan }: Props) {
       </div>
 
       {/* ── Actions ────────────────────────────────── */}
-      <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ padding: '16px 20px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
         <button
           className="btn btn-primary"
           onClick={() => setShowNew(true)}

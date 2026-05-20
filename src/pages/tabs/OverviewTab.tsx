@@ -23,11 +23,12 @@ function responsibleColor(name: string): { bg: string; text: string } {
 }
 
 /* ── Section icon badge ────────────────────────────────────── */
-function SectionBadge({ emoji, bg }: { emoji: string; bg: string }) {
+function SectionBadge({ emoji, color }: { emoji: string; color: string }) {
   return (
     <div style={{
       width: 30, height: 30, borderRadius: 9,
-      background: bg,
+      background: color + '1A',
+      border: `1.5px solid ${color}45`,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontSize: 16, flexShrink: 0,
     }}>
@@ -221,7 +222,7 @@ export default function OverviewTab() {
       <SectionCard bg="#FBF8F0" border="#E8DECA">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <SectionBadge emoji="🍽" bg="#C07840" />
+            <SectionBadge emoji="🍽" color="#C07840" />
             <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>露营菜单</span>
           </div>
           <button className="btn btn-secondary btn-sm" onClick={openAddMenu}>＋ 添加</button>
@@ -290,7 +291,7 @@ export default function OverviewTab() {
       <SectionCard bg="#EEF6F1" border="#C0DDC8">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <SectionBadge emoji="🏠" bg="#3D6B4F" />
+            <SectionBadge emoji="🏠" color="#3D6B4F" />
             <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>家庭 / 小组</span>
           </div>
           <button className="btn btn-secondary btn-sm" onClick={openAddFamily}>＋ 添加</button>
@@ -338,7 +339,7 @@ export default function OverviewTab() {
       <SectionCard bg="#FBF3EF" border="#E0C4B4" style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <SectionBadge emoji="👥" bg="#C06840" />
+            <SectionBadge emoji="👥" color="#C06840" />
             <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>参与成员</span>
           </div>
           <button

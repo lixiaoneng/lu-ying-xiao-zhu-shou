@@ -2,6 +2,14 @@ import { useApp } from '../../App';
 import { calculateSettlement } from '../../types';
 import type { AAMode } from '../../types';
 
+const FAMILY_PALETTE = [
+  { bg: '#EEF6F2', border: '#C0DCC8', avatarBg: '#D8EDE2', avatarText: '#3D6B4F' },
+  { bg: '#FBF3EF', border: '#E0C4B4', avatarBg: '#F5DDD0', avatarText: '#C06840' },
+  { bg: '#FBF9F1', border: '#E8DDCA', avatarBg: '#F0E8CC', avatarText: '#9A6830' },
+  { bg: '#EEF0F6', border: '#C8D0E0', avatarBg: '#D8DCF0', avatarText: '#4A5F8A' },
+  { bg: '#F0F6F8', border: '#B8D4DC', avatarBg: '#C8E4EC', avatarText: '#2A6878' },
+];
+
 export default function SettlementTab() {
   const { plan, updatePlan } = useApp();
   const aaMode: AAMode = plan.aaMode ?? 'family';
@@ -121,17 +129,18 @@ export default function SettlementTab() {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-        {s.familyBalances.map(fb => {
+        {s.familyBalances.map((fb, i) => {
           const isCreditor = fb.balance > 0.01;
           const isDebtor = fb.balance < -0.01;
+          const pal = FAMILY_PALETTE[i % FAMILY_PALETTE.length];
 
           return (
             <div
               key={fb.familyId}
               style={{
-                background: 'var(--card)',
+                background: pal.bg,
                 borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--border)',
+                border: `1px solid ${pal.border}`,
                 padding: '14px',
                 overflow: 'hidden',
               }}
@@ -144,9 +153,9 @@ export default function SettlementTab() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{
                     width: 28, height: 28, borderRadius: '50%',
-                    background: 'var(--primary-dim)',
+                    background: pal.avatarBg,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 13, fontWeight: 600, color: 'var(--primary)',
+                    fontSize: 13, fontWeight: 600, color: pal.avatarText,
                     flexShrink: 0,
                   }}>
                     {fb.familyName.slice(0, 1)}
@@ -186,7 +195,7 @@ export default function SettlementTab() {
                   },
                 ].map(item => (
                   <div key={item.label} style={{
-                    background: 'var(--bg)',
+                    background: 'rgba(255,255,255,0.65)',
                     borderRadius: 8, padding: '8px 10px', textAlign: 'center',
                   }}>
                     <div style={{ fontSize: 11, color: 'var(--text-light)', marginBottom: 3 }}>{item.label}</div>
