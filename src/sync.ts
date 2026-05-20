@@ -70,69 +70,28 @@ export function subscribeToPlan(
   onUpdate: (plan: CampingPlan) => void
 ): RealtimeChannel | null {
   const db = getSupabase();
-  if (!db) {
-    console.warn('[Realtime] ❌ getSupabase() returned null — Supabase not configured');
-    return null;
-  }
+  if (!db) return null;
 
-  // Use a unique suffix so Supabase client never reuses a stale channel object
+  // Unique suffix prevents Supabase client from reusing a stale channel object
   const channelName = `plan:${planId}:${Date.now()}`;
-  console.log(`[Realtime] 🔌 Creating channel "${channelName}"`);
 
   const channel = db
     .channel(channelName)
     .on(
       'postgres_changes',
-      // Listen for ALL events (INSERT + UPDATE) so upsert's insert path is also caught
+      // event:'*' catches both INSERT (upsert first-sync) and UPDATE
       { event: '*', schema: 'public', table: 'plans', filter: `id=eq.${planId}` },
       payload => {
-        console.log('[Realtime] 📨 postgres_changes event received:', {
-          eventType: payload.eventType,
-          schema: (payload as { schema?: string }).schema,
-          table: (payload as { table?: string }).table,
-          new: payload.new,
-        });
-
         const row = payload.new as { data?: CampingPlan } | null;
         const updated = row?.data;
-
-        if (updated) {
-          console.log('[Realtime] ✅ Calling onUpdate, plan updatedAt:', updated.updatedAt);
-          onUpdate(migratePlan(updated));
-        } else {
-          console.warn(
-            '[Realtime] ⚠️ payload.new.data is null/undefined.',
-            'Check: 1) Realtime enabled for plans table in Supabase Dashboard → Database → Replication',
-            '2) Table has REPLICA IDENTITY FULL (run: ALTER TABLE public.plans REPLICA IDENTITY FULL;)',
-            'Raw payload.new:', payload.new,
-          );
-        }
+        if (updated) onUpdate(migratePlan(updated));
       }
     )
-    .subscribe((status, err) => {
-      if (err) {
-        console.error(`[Realtime] ❌ Channel "${channelName}" error:`, err);
-      } else {
-        console.log(`[Realtime] Channel "${channelName}" status: ${status}`);
-      }
-      if (status === 'SUBSCRIBED') {
-        console.log('[Realtime] ✅ Subscription active — waiting for changes...');
-      } else if (status === 'CHANNEL_ERROR') {
-        console.error(
-          '[Realtime] ❌ CHANNEL_ERROR — most likely cause: Realtime is NOT enabled for the plans table.',
-          'Fix: Supabase Dashboard → Database → Replication → enable "plans" table',
-        );
-      } else if (status === 'TIMED_OUT') {
-        console.error('[Realtime] ❌ Subscription TIMED_OUT — check network or Supabase project status');
-      } else if (status === 'CLOSED') {
-        console.log(`[Realtime] Channel "${channelName}" closed`);
-      }
-    });
+    .subscribe();
 
   return channel;
 }
 
 export function unsubscribe(channel: RealtimeChannel): void {
-  console.log('[Realtime] 🔌 Unsubscribing channel:', channel.topic);
   getSupabase()?.removeChannel(channel);
 }
