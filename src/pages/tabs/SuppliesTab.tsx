@@ -273,7 +273,7 @@ export default function SuppliesTab() {
             onChange={e => setFQty(e.target.value)}
           />
         </div>
-        {activeType !== 'gear' && (
+        {activeType === 'food' && (
           <div className="toggle-wrap" style={{ marginBottom: 12 }}>
             <span style={{ fontSize: 14, color: 'var(--text)' }}>计入 AA 分摊</span>
             <button
