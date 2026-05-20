@@ -2,7 +2,7 @@ import { useState, createContext, useContext, useCallback, useEffect, useRef } f
 import type { CampingPlan } from './types';
 import { loadPlan, savePlan, setActivePlanId } from './store';
 import { isSupabaseConfigured } from './supabase';
-import { syncPlanToCloud, subscribeToPlan, unsubscribe } from './sync';
+import { syncPlanToCloud, subscribeToPlan, unsubscribe, fetchPlanFromCloud } from './sync';
 import Home from './pages/Home';
 import PlanDetail from './pages/PlanDetail';
 
@@ -41,13 +41,27 @@ export default function App() {
   const channelRef = useRef<import('@supabase/supabase-js').RealtimeChannel | null>(null);
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Cleanup realtime subscription on unmount or plan change
+  // Cleanup realtime subscription on unmount
   useEffect(() => {
     return () => {
       if (channelRef.current) unsubscribe(channelRef.current);
       if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
     };
   }, []);
+
+  // Re-fetch from cloud when page becomes visible again (e.g. switching back from WeChat chat)
+  useEffect(() => {
+    if (!plan || !roomCode || !isSupabaseConfigured()) return;
+    function handleVisibility() {
+      if (document.visibilityState === 'visible' && plan && roomCode) {
+        fetchPlanFromCloud(plan.id).then(({ plan: cloudPlan }) => {
+          if (cloudPlan) { savePlan(cloudPlan); setPlan(cloudPlan); }
+        });
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [plan?.id, roomCode]);
 
   const openPlan = useCallback((id: string, code?: string) => {
     const p = loadPlan(id);
@@ -65,8 +79,13 @@ export default function App() {
     setCurrentTab('overview');
     setActivePlanId(id);
 
-    // Subscribe to realtime if cloud plan
+    // Subscribe to realtime + fetch latest if cloud plan
     if (effectiveCode && isSupabaseConfigured()) {
+      // Always pull latest from cloud on open (don't rely on stale localStorage)
+      fetchPlanFromCloud(p.id).then(({ plan: cloudPlan }) => {
+        if (cloudPlan) { savePlan(cloudPlan); setPlan(cloudPlan); }
+      });
+
       channelRef.current = subscribeToPlan(p.id, (updated) => {
         savePlan(updated);
         setPlan(updated);

@@ -34,6 +34,20 @@ export async function syncPlanToCloud(
   return { error: error?.message ?? null };
 }
 
+export async function fetchPlanFromCloud(
+  planId: string
+): Promise<{ plan: CampingPlan | null; error: string | null }> {
+  const db = getSupabase();
+  if (!db) return { plan: null, error: 'Supabase 未配置' };
+  const { data, error } = await db
+    .from('plans')
+    .select('data')
+    .eq('id', planId)
+    .single();
+  if (error || !data) return { plan: null, error: error?.message ?? '获取失败' };
+  return { plan: data.data as CampingPlan, error: null };
+}
+
 export async function loadPlanByRoomCode(
   code: string
 ): Promise<{ plan: CampingPlan | null; roomCode: string | null; error: string | null }> {
