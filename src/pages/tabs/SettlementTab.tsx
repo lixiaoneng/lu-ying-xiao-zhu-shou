@@ -4,7 +4,6 @@ import type { AAMode } from '../../types';
 
 export default function SettlementTab() {
   const { plan, updatePlan } = useApp();
-
   const aaMode: AAMode = plan.aaMode ?? 'family';
 
   function setMode(mode: AAMode) {
@@ -14,8 +13,8 @@ export default function SettlementTab() {
   if (plan.families.length === 0) {
     return (
       <div className="empty-state" style={{ marginTop: 40 }}>
-        <div className="empty-icon">⚖️</div>
-        <p>请先在「概况」中添加家庭/小组<br />再来计算 AA</p>
+        <div className="empty-icon" style={{ fontSize: 32, opacity: 0.3 }}>⊜</div>
+        <p>请先在「概况」中添加家庭 / 小组<br />再来计算 AA</p>
       </div>
     );
   }
@@ -23,7 +22,7 @@ export default function SettlementTab() {
   if (plan.expenses.length === 0) {
     return (
       <div className="empty-state" style={{ marginTop: 40 }}>
-        <div className="empty-icon">💰</div>
+        <div className="empty-icon" style={{ fontSize: 32, opacity: 0.3 }}>¥</div>
         <p>还没有花费记录<br />在「花费」页添加后即可计算 AA</p>
       </div>
     );
@@ -33,7 +32,7 @@ export default function SettlementTab() {
   if (aaExpenses.length === 0) {
     return (
       <div className="empty-state" style={{ marginTop: 40 }}>
-        <div className="empty-icon">⚖️</div>
+        <div className="empty-icon" style={{ fontSize: 32, opacity: 0.3 }}>⊜</div>
         <p>所有花费均未标记「计入AA」<br />请在花费页面开启 AA 开关</p>
       </div>
     );
@@ -42,8 +41,8 @@ export default function SettlementTab() {
   const s = calculateSettlement(plan);
 
   const modeLabel = aaMode === 'person'
-    ? `每人 ¥${s.perUnit.toFixed(0)}（共 ${s.totalUnits} 人）`
-    : `每家 ¥${s.perUnit.toFixed(0)}（共 ${s.totalUnits} 个家庭）`;
+    ? `共 ${s.totalUnits} 人，每人 ¥${s.perUnit.toFixed(0)}`
+    : `共 ${s.totalUnits} 个家庭，每家 ¥${s.perUnit.toFixed(0)}`;
 
   return (
     <div style={{ padding: '14px 14px 0' }}>
@@ -54,58 +53,73 @@ export default function SettlementTab() {
           className={`segment-btn${aaMode === 'family' ? ' active' : ''}`}
           onClick={() => setMode('family')}
         >
-          🏠 按家庭均摊
+          按家庭均摊
         </button>
         <button
           className={`segment-btn${aaMode === 'person' ? ' active' : ''}`}
           onClick={() => setMode('person')}
         >
-          👤 按人头均摊
+          按人头均摊
         </button>
       </div>
 
-      {/* Mode hint */}
+      {/* Warning: no people for per-person mode */}
       {aaMode === 'person' && plan.people.length === 0 && (
         <div style={{
-          background: 'var(--red-dim)', border: '1px solid #F5BDB8',
-          borderRadius: 'var(--radius-xs)', padding: '10px 12px',
-          fontSize: 13, color: 'var(--red)', marginBottom: 12,
+          background: 'var(--red-dim)',
+          border: '1px solid #F5BDB8',
+          borderRadius: 'var(--radius-xs)',
+          padding: '10px 12px',
+          fontSize: 13, color: 'var(--red)',
+          marginBottom: 12,
         }}>
-          ⚠️ 请先在「概况」页添加参与人员，才能按人头计算
+          请先在「概况」页添加参与人员，才能按人头计算
         </div>
       )}
 
       {/* Total banner */}
       <div style={{
-        background: 'linear-gradient(135deg, #2C1A0E 0%, #4A2E18 100%)',
+        background: 'var(--card)',
         borderRadius: 'var(--radius)',
-        padding: '20px',
+        border: '1px solid var(--border)',
+        padding: '20px 22px',
         marginBottom: 14,
-        position: 'relative',
-        overflow: 'hidden',
+        display: 'flex',
+        alignItems: 'flex-end',
+        justifyContent: 'space-between',
       }}>
-        <div style={{
-          position: 'absolute', top: -30, right: -30,
-          width: 120, height: 120, borderRadius: '50%',
-          background: 'rgba(200, 101, 26, 0.15)',
-        }} />
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 6 }}>
+        <div>
+          <div style={{ fontSize: 12, color: 'var(--text-light)', marginBottom: 6 }}>
             AA 总金额
           </div>
-          <div style={{ fontSize: 36, color: 'white', fontFamily: 'ZCOOL XiaoWei, serif' }}>
+          <div style={{
+            fontSize: 38, fontWeight: 700, color: 'var(--text)',
+            fontFamily: "'Noto Serif SC', serif",
+            lineHeight: 1,
+            letterSpacing: '-0.02em',
+          }}>
             ¥{s.totalAmount.toFixed(0)}
           </div>
-          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 4 }}>
-            {modeLabel}
-          </div>
+        </div>
+        <div style={{
+          textAlign: 'right',
+          fontSize: 13, color: 'var(--text-muted)',
+          lineHeight: 1.5,
+          paddingBottom: 4,
+        }}>
+          {modeLabel}
         </div>
       </div>
 
       {/* Per-family breakdown */}
-      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', marginBottom: 10 }}>
+      <div style={{
+        fontSize: 11, fontWeight: 600, color: 'var(--text-light)',
+        letterSpacing: '0.08em', textTransform: 'uppercase',
+        marginBottom: 10,
+      }}>
         各家明细
       </div>
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
         {s.familyBalances.map(fb => {
           const isCreditor = fb.balance > 0.01;
@@ -118,70 +132,91 @@ export default function SettlementTab() {
                 background: 'var(--card)',
                 borderRadius: 'var(--radius-sm)',
                 border: '1px solid var(--border)',
-                borderLeft: `4px solid ${isCreditor ? 'var(--green)' : isDebtor ? 'var(--primary)' : 'var(--border)'}`,
-                padding: '14px 14px',
+                padding: '14px',
+                overflow: 'hidden',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <div>
-                  <span style={{ fontWeight: 700, fontSize: 15 }}>{fb.familyName}</span>
-                  {aaMode === 'person' && (
-                    <span style={{
-                      marginLeft: 8, fontSize: 12,
-                      color: 'var(--text-muted)',
-                      background: 'var(--bg-warm)',
-                      padding: '2px 8px', borderRadius: 10,
-                      border: '1px solid var(--border)',
-                    }}>
-                      {fb.memberCount} 人
-                    </span>
-                  )}
+              {/* Header row */}
+              <div style={{
+                display: 'flex', alignItems: 'center',
+                justifyContent: 'space-between', marginBottom: 12,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: '50%',
+                    background: 'var(--primary-dim)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 13, fontWeight: 600, color: 'var(--primary)',
+                    flexShrink: 0,
+                  }}>
+                    {fb.familyName.slice(0, 1)}
+                  </div>
+                  <div>
+                    <span style={{ fontWeight: 600, fontSize: 15 }}>{fb.familyName}</span>
+                    {aaMode === 'person' && (
+                      <span style={{
+                        marginLeft: 6, fontSize: 12, color: 'var(--text-muted)',
+                        background: 'var(--bg-soft)',
+                        padding: '1px 7px', borderRadius: 10,
+                        border: '1px solid var(--border)',
+                      }}>
+                        {fb.memberCount} 人
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <span className={`tag ${isCreditor ? 'tag-green' : isDebtor ? 'tag-orange' : 'tag-gray'}`}>
-                  {isCreditor ? '💚 待收款' : isDebtor ? '🔶 待付款' : '✓ 已平'}
+                  {isCreditor ? '待收款' : isDebtor ? '待付款' : '已平'}
                 </span>
               </div>
 
+              {/* Stats grid */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
                 {[
                   { label: '已垫付', value: `¥${fb.paid.toFixed(0)}`, color: 'var(--text)' },
                   {
-                    label: aaMode === 'person' ? `应摊(×${fb.memberCount})` : '应摊',
+                    label: aaMode === 'person' ? `应摊 ×${fb.memberCount}` : '应摊',
                     value: `¥${fb.share.toFixed(0)}`,
                     color: 'var(--text-muted)',
                   },
                   {
-                    label: isCreditor ? '应收' : isDebtor ? '应付' : '已平',
+                    label: isCreditor ? '应收' : isDebtor ? '应付' : '结清',
                     value: `¥${Math.abs(fb.balance).toFixed(0)}`,
-                    color: isCreditor ? 'var(--green)' : isDebtor ? 'var(--primary)' : 'var(--text-muted)',
+                    color: isCreditor ? 'var(--green)' : isDebtor ? 'var(--accent)' : 'var(--text-light)',
                   },
                 ].map(item => (
                   <div key={item.label} style={{
                     background: 'var(--bg)',
                     borderRadius: 8, padding: '8px 10px', textAlign: 'center',
                   }}>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>{item.label}</div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: item.color }}>{item.value}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-light)', marginBottom: 3 }}>{item.label}</div>
+                    <div style={{
+                      fontSize: 15, fontWeight: 700, color: item.color,
+                      fontFamily: "'Noto Serif SC', serif",
+                    }}>{item.value}</div>
                   </div>
                 ))}
               </div>
 
-              <div style={{ marginTop: 10 }}>
-                {plan.expenses
-                  .filter(e => e.payerFamilyId === fb.familyId && e.includeInAA)
-                  .map(e => (
-                    <div key={e.id} style={{
-                      display: 'flex', justifyContent: 'space-between',
-                      fontSize: 13, color: 'var(--text-muted)',
-                      padding: '3px 0',
-                      borderTop: '1px solid var(--bg-warm)',
-                    }}>
-                      <span>{e.item}{e.note ? ` (${e.note})` : ''}</span>
-                      <span style={{ color: 'var(--text)' }}>¥{e.amount.toFixed(0)}</span>
-                    </div>
-                  ))
-                }
-              </div>
+              {/* Expense rows */}
+              {plan.expenses.filter(e => e.payerFamilyId === fb.familyId && e.includeInAA).length > 0 && (
+                <div style={{ marginTop: 10 }}>
+                  {plan.expenses
+                    .filter(e => e.payerFamilyId === fb.familyId && e.includeInAA)
+                    .map(e => (
+                      <div key={e.id} style={{
+                        display: 'flex', justifyContent: 'space-between',
+                        fontSize: 13, color: 'var(--text-muted)',
+                        padding: '4px 0',
+                        borderTop: '1px solid var(--bg-soft)',
+                      }}>
+                        <span>{e.item}{e.note ? ` · ${e.note}` : ''}</span>
+                        <span style={{ color: 'var(--text-2)', fontWeight: 500 }}>¥{e.amount.toFixed(0)}</span>
+                      </div>
+                    ))
+                  }
+                </div>
+              )}
             </div>
           );
         })}
@@ -190,7 +225,11 @@ export default function SettlementTab() {
       {/* Transfer instructions */}
       {s.transactions.length > 0 && (
         <>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', marginBottom: 10 }}>
+          <div style={{
+            fontSize: 11, fontWeight: 600, color: 'var(--text-light)',
+            letterSpacing: '0.08em', textTransform: 'uppercase',
+            marginBottom: 10,
+          }}>
             转账方案
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
@@ -200,26 +239,25 @@ export default function SettlementTab() {
                 borderRadius: 'var(--radius-sm)',
                 border: '1px solid var(--border)',
                 padding: '14px 16px',
-                display: 'flex', alignItems: 'center', gap: 10,
+                display: 'flex', alignItems: 'center', gap: 12,
               }}>
                 <div style={{
-                  width: 36, height: 36, borderRadius: '50%',
-                  background: 'var(--primary-dim)',
+                  width: 32, height: 32, borderRadius: '50%',
+                  background: 'var(--accent-dim)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 13, fontWeight: 700, color: 'var(--primary)', flexShrink: 0,
+                  fontSize: 13, fontWeight: 700, color: 'var(--accent)', flexShrink: 0,
                 }}>
                   {tx.fromFamilyName.slice(0, 1)}
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 500 }}>
-                    <span style={{ color: 'var(--primary)' }}>{tx.fromFamilyName}</span>
-                    <span style={{ color: 'var(--text-muted)', margin: '0 6px' }}>→</span>
-                    <span style={{ color: 'var(--green)' }}>{tx.toFamilyName}</span>
-                  </div>
+                <div style={{ flex: 1, fontSize: 14, fontWeight: 500 }}>
+                  <span style={{ color: 'var(--text)' }}>{tx.fromFamilyName}</span>
+                  <span style={{ color: 'var(--text-light)', margin: '0 8px', fontSize: 12 }}>→</span>
+                  <span style={{ color: 'var(--green)' }}>{tx.toFamilyName}</span>
                 </div>
                 <div style={{
                   fontSize: 20, fontWeight: 700, color: 'var(--text)',
-                  fontFamily: 'ZCOOL XiaoWei, serif', flexShrink: 0,
+                  fontFamily: "'Noto Serif SC', serif",
+                  flexShrink: 0,
                 }}>
                   ¥{tx.amount.toFixed(0)}
                 </div>
@@ -229,21 +267,25 @@ export default function SettlementTab() {
         </>
       )}
 
+      {/* All settled */}
       {s.transactions.length === 0 && (
         <div style={{
           background: 'var(--green-dim)',
           border: '1px solid var(--green-border)',
           borderRadius: 'var(--radius-sm)',
-          padding: '16px', textAlign: 'center',
-          color: 'var(--green)', fontWeight: 500, fontSize: 15,
+          padding: '16px',
+          textAlign: 'center',
+          color: 'var(--green)',
+          fontWeight: 600,
+          fontSize: 15,
           marginBottom: 16,
         }}>
-          🎉 完美平衡，无需转账！
+          完美平衡，无需转账
         </div>
       )}
 
       <div style={{ fontSize: 12, color: 'var(--text-light)', textAlign: 'center', marginBottom: 16 }}>
-        转账方案按家庭/小组汇总，与 AA 方式无关
+        转账方案按家庭 / 小组汇总
       </div>
     </div>
   );

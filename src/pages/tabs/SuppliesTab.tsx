@@ -1,27 +1,27 @@
 import { useState } from 'react';
 import type { Supply, SupplyType } from '../../types';
-import { SUPPLY_TYPE_LABELS, SUPPLY_TYPE_ICONS, SUPPLY_CATEGORIES } from '../../types';
+import { SUPPLY_TYPE_LABELS, SUPPLY_CATEGORIES } from '../../types';
 import { useApp } from '../../App';
 import { generateId } from '../../store';
 import Modal from '../../components/Modal';
 
-const SUPPLY_ACCENT: Record<SupplyType, string> = {
-  personal: '#C8651A',
-  food: '#3D6B4F',
-  gear: '#5B7FA8',
-};
-
-// Warm, earthy palette for family tags — up to 8 families
+// Earthy palette for family tags — up to 8 families
 const FAMILY_COLORS: { bg: string; text: string; border: string }[] = [
-  { bg: '#FDEBD0', text: '#A84E10', border: '#F0C090' }, // amber
-  { bg: '#E0EFE6', text: '#2E6B48', border: '#A8D4B8' }, // forest green
-  { bg: '#E0EAF5', text: '#3A5F8A', border: '#A8C0E0' }, // slate blue
-  { bg: '#F5E6E0', text: '#8A3A2E', border: '#E0A898' }, // terracotta
-  { bg: '#EDE8F5', text: '#5A3A8A', border: '#C0A8E0' }, // lavender
-  { bg: '#EBF0DC', text: '#4A5E28', border: '#C0D098' }, // olive
-  { bg: '#DCF0EF', text: '#226060', border: '#98D0CE' }, // teal
-  { bg: '#F0EAE0', text: '#6A5040', border: '#D0B898' }, // warm brown
+  { bg: '#FDEBD0', text: '#A84E10', border: '#F0C090' },
+  { bg: '#E0EFE6', text: '#2E6B48', border: '#A8D4B8' },
+  { bg: '#E0EAF5', text: '#3A5F8A', border: '#A8C0E0' },
+  { bg: '#F5E6E0', text: '#8A3A2E', border: '#E0A898' },
+  { bg: '#EDE8F5', text: '#5A3A8A', border: '#C0A8E0' },
+  { bg: '#EBF0DC', text: '#4A5E28', border: '#C0D098' },
+  { bg: '#DCF0EF', text: '#226060', border: '#98D0CE' },
+  { bg: '#F0EAE0', text: '#6A5040', border: '#D0B898' },
 ];
+
+const TYPE_LABELS: Record<SupplyType, string> = {
+  personal: '个人物品',
+  food: '公共食材',
+  gear: '营地装备',
+};
 
 export default function SuppliesTab() {
   const { plan, updatePlan, toast } = useApp();
@@ -30,7 +30,6 @@ export default function SuppliesTab() {
   const [showModal, setShowModal] = useState(false);
   const [editSupply, setEditSupply] = useState<Supply | null>(null);
 
-  // Form
   const [fName, setFName] = useState('');
   const [fCategory, setFCategory] = useState('');
   const [fAssignee, setFAssignee] = useState('');
@@ -111,9 +110,6 @@ export default function SuppliesTab() {
   }
 
   const readyCount = filtered.filter(s => s.isReady).length;
-  const accent = SUPPLY_ACCENT[activeType];
-
-  // Group by category
   const categories = [...new Set(filtered.map(s => s.category))];
 
   return (
@@ -124,16 +120,15 @@ export default function SuppliesTab() {
           <button
             key={t}
             className={`segment-btn${activeType === t ? ' active' : ''}`}
-            onClick={() => setActiveType(t)}
+            onClick={() => { setActiveType(t); setFilterFamily('all'); }}
           >
-            <span>{SUPPLY_TYPE_ICONS[t]}</span>
-            <span>{SUPPLY_TYPE_LABELS[t]}</span>
+            {TYPE_LABELS[t]}
           </button>
         ))}
       </div>
 
-      {/* Filter + stats */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+      {/* Filter + progress */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
         <select
           className="input input-sm"
           value={filterFamily}
@@ -147,11 +142,12 @@ export default function SuppliesTab() {
         </select>
         {filtered.length > 0 && (
           <div style={{
-            flexShrink: 0, fontSize: 13, color: 'var(--text-muted)',
+            flexShrink: 0, fontSize: 13, color: 'var(--text-2)',
             background: 'var(--card)', padding: '6px 12px',
             borderRadius: 'var(--radius-xs)', border: '1px solid var(--border)',
+            fontVariantNumeric: 'tabular-nums',
           }}>
-            {readyCount}/{filtered.length} 已备
+            {readyCount}/{filtered.length}
           </div>
         )}
       </div>
@@ -159,14 +155,15 @@ export default function SuppliesTab() {
       {/* Progress bar */}
       {filtered.length > 0 && (
         <div style={{
-          height: 4, background: 'var(--border)', borderRadius: 2, marginBottom: 14, overflow: 'hidden',
+          height: 3, background: 'var(--border)', borderRadius: 2,
+          marginBottom: 14, overflow: 'hidden',
         }}>
           <div style={{
             height: '100%',
             width: `${(readyCount / filtered.length) * 100}%`,
-            background: accent,
+            background: readyCount === filtered.length ? 'var(--green)' : 'var(--primary)',
             borderRadius: 2,
-            transition: 'width 0.3s ease',
+            transition: 'width 0.35s ease',
           }} />
         </div>
       )}
@@ -174,31 +171,32 @@ export default function SuppliesTab() {
       {/* Supply list */}
       {filtered.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">{SUPPLY_TYPE_ICONS[activeType]}</div>
+          <div className="empty-icon" style={{ fontSize: 32, opacity: 0.3 }}>○</div>
           <p>还没有{SUPPLY_TYPE_LABELS[activeType]}项目<br />点击右下角 ＋ 添加</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {categories.map(cat => {
             const items = filtered.filter(s => s.category === cat);
             return (
               <div key={cat}>
+                {/* Category label */}
                 <div style={{
-                  fontSize: 12, fontWeight: 700, color: 'var(--text-muted)',
-                  letterSpacing: '0.06em', marginBottom: 6,
-                  display: 'flex', alignItems: 'center', gap: 6,
+                  display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7,
                 }}>
-                  <span>{cat}</span>
+                  <span style={{
+                    fontSize: 11, fontWeight: 600, color: 'var(--text-light)',
+                    letterSpacing: '0.08em', textTransform: 'uppercase',
+                  }}>{cat}</span>
                   <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {items.map(s => (
                     <SupplyCard
                       key={s.id}
                       supply={s}
                       familyName={familyMap[s.assigneeId] ?? '未指定'}
                       familyColor={familyColorMap[s.assigneeId]}
-                      accent={accent}
                       onToggle={() => toggleReady(s.id)}
                       onEdit={() => openEdit(s)}
                       onDelete={() => deleteSupply(s.id)}
@@ -221,7 +219,7 @@ export default function SuppliesTab() {
         ＋
       </button>
 
-      {/* Modal */}
+      {/* Add / Edit modal */}
       <Modal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
@@ -233,7 +231,7 @@ export default function SuppliesTab() {
             onClick={saveSupply}
             disabled={!fName.trim() || !fAssignee}
           >
-            {editSupply ? '保存' : '添加物品'}
+            {editSupply ? '保存修改' : '添加物品'}
           </button>
         }
       >
@@ -309,25 +307,23 @@ interface CardProps {
   supply: Supply;
   familyName: string;
   familyColor?: { bg: string; text: string; border: string };
-  accent: string;
   onToggle: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-function SupplyCard({ supply: s, familyName, familyColor, accent, onToggle, onEdit, onDelete }: CardProps) {
+function SupplyCard({ supply: s, familyName, familyColor, onToggle, onEdit, onDelete }: CardProps) {
   return (
     <div style={{
-      background: 'var(--card)',
+      background: s.isReady ? 'var(--bg-soft)' : 'var(--card)',
       borderRadius: 'var(--radius-sm)',
       border: '1px solid var(--border)',
-      borderLeft: `3.5px solid ${s.isReady ? '#3D6B4F' : accent}`,
       padding: '11px 12px',
       display: 'flex',
       alignItems: 'center',
       gap: 10,
-      opacity: s.isReady ? 0.72 : 1,
-      transition: 'opacity 0.2s',
+      opacity: s.isReady ? 0.7 : 1,
+      transition: 'all 0.2s',
     }}>
       {/* Checkbox */}
       <button
@@ -341,8 +337,7 @@ function SupplyCard({ supply: s, familyName, familyColor, accent, onToggle, onEd
       {/* Content */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
-          fontSize: 15, fontWeight: 500,
-          color: 'var(--text)',
+          fontSize: 15, fontWeight: 500, color: 'var(--text)',
           textDecoration: s.isReady ? 'line-through' : 'none',
         }}>
           {s.name}
@@ -357,21 +352,41 @@ function SupplyCard({ supply: s, familyName, familyColor, accent, onToggle, onEd
             className="tag"
             style={familyColor
               ? { background: familyColor.bg, color: familyColor.text, border: `1px solid ${familyColor.border}` }
-              : { background: 'var(--bg-warm)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
+              : { background: 'var(--bg-soft)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
             }
-          >{familyName}</span>
+          >
+            {familyName}
+          </span>
           {s.needsAA && (
-            <span className="tag tag-orange">
+            <span className="tag" style={{
+              background: 'var(--accent-dim)',
+              color: 'var(--accent)',
+              border: '1px solid var(--accent-border)',
+            }}>
               AA{s.price != null ? ` ¥${s.price}` : ''}
             </span>
           )}
-          {s.isReady && <span className="tag tag-green">✓ 已备</span>}
+          {s.isReady && (
+            <span className="tag tag-green">已备妥</span>
+          )}
         </div>
       </div>
 
       {/* Actions */}
-      <button className="btn-icon" onClick={onEdit} style={{ fontSize: 16 }}>✏️</button>
-      <button className="btn-icon" onClick={onDelete} style={{ fontSize: 16 }}>🗑️</button>
+      <button
+        className="btn-icon"
+        onClick={onEdit}
+        style={{ fontSize: 15, color: 'var(--text-light)' }}
+      >
+        ✎
+      </button>
+      <button
+        className="btn-icon"
+        onClick={onDelete}
+        style={{ fontSize: 14, color: 'var(--text-light)' }}
+      >
+        ✕
+      </button>
     </div>
   );
 }

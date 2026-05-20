@@ -1,11 +1,11 @@
 import { useApp, type TabId } from '../App';
 
-const TABS: { id: TabId; label: string; icon: string }[] = [
-  { id: 'overview',    label: '概况', icon: '🗺️' },
-  { id: 'supplies',    label: '物资', icon: '📦' },
-  { id: 'expenses',    label: '花费', icon: '💰' },
-  { id: 'settlement',  label: 'AA',   icon: '⚖️' },
-  { id: 'share',       label: '分享', icon: '💬' },
+const TABS: { id: TabId; label: string }[] = [
+  { id: 'overview',   label: '概况' },
+  { id: 'supplies',   label: '物资' },
+  { id: 'expenses',   label: '花费' },
+  { id: 'settlement', label: 'AA' },
+  { id: 'share',      label: '分享' },
 ];
 
 export default function BottomNav() {
@@ -19,9 +19,9 @@ export default function BottomNav() {
       transform: 'translateX(-50%)',
       width: '100%',
       maxWidth: 480,
-      background: 'rgba(255,255,255,0.96)',
-      backdropFilter: 'blur(12px)',
-      WebkitBackdropFilter: 'blur(12px)',
+      background: 'rgba(255,255,255,0.97)',
+      backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
       borderTop: '1px solid var(--border)',
       display: 'flex',
       height: 'var(--nav-height)',
@@ -43,31 +43,26 @@ export default function BottomNav() {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 3,
-              padding: '8px 4px',
-              position: 'relative',
+              gap: 5,
+              padding: '10px 4px 8px',
               transition: 'all 0.18s ease',
+              position: 'relative',
             }}
           >
-            {/* Active indicator */}
-            {active && (
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                left: '25%',
-                width: '50%',
-                height: 2.5,
-                background: 'var(--primary)',
-                borderRadius: '0 0 3px 3px',
-              }} />
-            )}
-            <span style={{ fontSize: 22, lineHeight: 1 }}>{tab.icon}</span>
+            {/* Active dot */}
+            <div style={{
+              width: 4, height: 4, borderRadius: '50%',
+              background: active ? 'var(--primary)' : 'transparent',
+              transition: 'background 0.2s',
+            }} />
+
             <span style={{
-              fontSize: 11,
-              fontWeight: active ? 700 : 400,
-              color: active ? 'var(--primary)' : 'var(--text-muted)',
-              letterSpacing: '0.02em',
-              transition: 'color 0.18s',
+              fontSize: 13,
+              fontWeight: active ? 600 : 400,
+              color: active ? 'var(--primary)' : 'var(--text-light)',
+              letterSpacing: active ? '-0.01em' : '0',
+              transition: 'all 0.18s',
+              fontFamily: 'Noto Sans SC, sans-serif',
             }}>
               {tab.label}
             </span>
