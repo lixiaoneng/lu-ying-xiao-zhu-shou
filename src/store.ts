@@ -41,11 +41,10 @@ export function loadPlan(id: string): CampingPlan | null {
 export function savePlan(plan: CampingPlan): void {
   const plans = loadPlans();
   const idx = plans.findIndex(p => p.id === plan.id);
-  const updated = { ...plan, updatedAt: new Date().toISOString() };
   if (idx >= 0) {
-    plans[idx] = updated;
+    plans[idx] = plan;
   } else {
-    plans.push(updated);
+    plans.push(plan);
   }
   savePlans(plans);
 }

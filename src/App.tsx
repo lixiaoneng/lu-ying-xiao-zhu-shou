@@ -114,14 +114,16 @@ export default function App() {
   }, []);
 
   const updatePlan = useCallback((updated: CampingPlan) => {
-    savePlan(updated);
-    setPlan(updated);
+    // Stamp the timestamp ONCE so localStorage and cloud are always identical
+    const stamped = { ...updated, updatedAt: new Date().toISOString() };
+    savePlan(stamped);
+    setPlan(stamped);
 
     if (roomCode && isSupabaseConfigured()) {
       setSyncStatus('syncing');
       if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
       syncTimerRef.current = setTimeout(() => {
-        syncPlanToCloud(updated).then(({ error }) => setSyncDone(!!error));
+        syncPlanToCloud(stamped).then(({ error }) => setSyncDone(!!error));
       }, 300);
     }
   }, [roomCode, setSyncDone]);
