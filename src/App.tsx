@@ -7,6 +7,7 @@ import Home from './pages/Home';
 import PlanDetail from './pages/PlanDetail';
 
 export type TabId = 'overview' | 'supplies' | 'expenses' | 'settlement' | 'share';
+export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error';
 
 interface Toast {
   id: number;
@@ -23,6 +24,8 @@ interface AppCtx {
   currentTab: TabId;
   setCurrentTab: (t: TabId) => void;
   toast: (msg: string, type?: 'success' | 'error') => void;
+  syncStatus: SyncStatus;
+  forceSync: () => void;
 }
 
 const AppContext = createContext<AppCtx | null>(null);
@@ -38,30 +41,37 @@ export default function App() {
   const [roomCode, setRoomCode] = useState<string | null>(null);
   const [currentTab, setCurrentTab] = useState<TabId>('overview');
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
   const channelRef = useRef<import('@supabase/supabase-js').RealtimeChannel | null>(null);
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const syncStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Cleanup realtime subscription on unmount
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (channelRef.current) unsubscribe(channelRef.current);
       if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+      if (syncStatusTimerRef.current) clearTimeout(syncStatusTimerRef.current);
     };
   }, []);
 
-  // Re-fetch from cloud when page becomes visible again (e.g. switching back from WeChat chat)
+  // Re-fetch from cloud when page becomes visible (e.g. switching back from WeChat)
+  // Only overwrite local data if cloud version is strictly newer
   useEffect(() => {
     if (!plan || !roomCode || !isSupabaseConfigured()) return;
     function handleVisibility() {
       if (document.visibilityState === 'visible' && plan && roomCode) {
         fetchPlanFromCloud(plan.id).then(({ plan: cloudPlan }) => {
-          if (cloudPlan) { savePlan(cloudPlan); setPlan(cloudPlan); }
+          if (cloudPlan && cloudPlan.updatedAt > plan.updatedAt) {
+            savePlan(cloudPlan);
+            setPlan(cloudPlan);
+          }
         });
       }
     }
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [plan?.id, roomCode]);
+  }, [plan?.id, plan?.updatedAt, roomCode]);
 
   const openPlan = useCallback((id: string, code?: string) => {
     const p = loadPlan(id);
@@ -78,14 +88,18 @@ export default function App() {
     setRoomCode(effectiveCode);
     setCurrentTab('overview');
     setActivePlanId(id);
+    setSyncStatus('idle');
 
-    // Subscribe to realtime + fetch latest if cloud plan
     if (effectiveCode && isSupabaseConfigured()) {
-      // Always pull latest from cloud on open (don't rely on stale localStorage)
+      // Fetch latest from cloud, but only use it if cloud is strictly newer than local
       fetchPlanFromCloud(p.id).then(({ plan: cloudPlan }) => {
-        if (cloudPlan) { savePlan(cloudPlan); setPlan(cloudPlan); }
+        if (cloudPlan && cloudPlan.updatedAt > p.updatedAt) {
+          savePlan(cloudPlan);
+          setPlan(cloudPlan);
+        }
       });
 
+      // Realtime: always accept — only fires when another user pushes a change
       channelRef.current = subscribeToPlan(p.id, (updated) => {
         savePlan(updated);
         setPlan(updated);
@@ -93,18 +107,31 @@ export default function App() {
     }
   }, []);
 
+  const setSyncDone = useCallback((error: boolean) => {
+    setSyncStatus(error ? 'error' : 'synced');
+    if (syncStatusTimerRef.current) clearTimeout(syncStatusTimerRef.current);
+    syncStatusTimerRef.current = setTimeout(() => setSyncStatus('idle'), 3000);
+  }, []);
+
   const updatePlan = useCallback((updated: CampingPlan) => {
     savePlan(updated);
     setPlan(updated);
 
-    // Debounced cloud sync
     if (roomCode && isSupabaseConfigured()) {
+      setSyncStatus('syncing');
       if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
       syncTimerRef.current = setTimeout(() => {
-        syncPlanToCloud(updated);
-      }, 800);
+        syncPlanToCloud(updated).then(({ error }) => setSyncDone(!!error));
+      }, 300);
     }
-  }, [roomCode]);
+  }, [roomCode, setSyncDone]);
+
+  const forceSync = useCallback(() => {
+    if (!plan || !roomCode || !isSupabaseConfigured()) return;
+    setSyncStatus('syncing');
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    syncPlanToCloud(plan).then(({ error }) => setSyncDone(!!error));
+  }, [plan, roomCode, setSyncDone]);
 
   const goHome = useCallback(() => {
     if (channelRef.current) {
@@ -114,6 +141,7 @@ export default function App() {
     setPlan(null);
     setRoomCode(null);
     setActivePlanId(null);
+    setSyncStatus('idle');
   }, []);
 
   const toast = useCallback((msg: string, type: 'success' | 'error' = 'success') => {
@@ -134,6 +162,8 @@ export default function App() {
           currentTab,
           setCurrentTab,
           toast,
+          syncStatus,
+          forceSync,
         }}>
           <PlanDetail />
         </AppContext.Provider>

@@ -7,13 +7,22 @@ import SettlementTab from './tabs/SettlementTab';
 import ShareTab from './tabs/ShareTab';
 import { exportPlanAsJson } from '../store';
 
+const SYNC_ICON: Record<string, { icon: string; color: string; title: string }> = {
+  syncing: { icon: '🔄', color: 'var(--text-muted)', title: '同步中…' },
+  synced:  { icon: '✓',  color: 'var(--green)',      title: '已同步' },
+  error:   { icon: '⚠️', color: '#C0392B',            title: '同步失败，点击重试' },
+};
+
 export default function PlanDetail() {
-  const { plan, goHome, currentTab, roomCode, toast } = useApp();
+  const { plan, goHome, currentTab, roomCode, toast, syncStatus, forceSync } = useApp();
+
   function formatDate(d: string) {
     if (!d) return '';
     const dt = new Date(d + 'T00:00:00');
     return dt.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' });
   }
+
+  const syncInfo = roomCode ? SYNC_ICON[syncStatus] : null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden' }}>
@@ -27,7 +36,7 @@ export default function PlanDetail() {
         height: 'var(--header-height)',
         display: 'flex',
         alignItems: 'center',
-        gap: 12,
+        gap: 10,
         position: 'sticky',
         top: 0,
         zIndex: 400,
@@ -55,6 +64,27 @@ export default function PlanDetail() {
             </div>
           )}
         </div>
+
+        {/* Sync status indicator — only for cloud plans */}
+        {syncInfo && (
+          <button
+            onClick={forceSync}
+            title={syncInfo.title}
+            style={{
+              border: 'none', background: 'transparent', cursor: 'pointer',
+              fontSize: syncStatus === 'synced' ? 14 : 16,
+              color: syncInfo.color,
+              padding: '4px 2px',
+              flexShrink: 0,
+              animation: syncStatus === 'syncing' ? 'spin 1s linear infinite' : 'none',
+              display: 'flex', alignItems: 'center',
+            }}
+          >
+            {syncInfo.icon}
+          </button>
+        )}
+
+        {/* Room code pill */}
         {roomCode && (
           <button
             onClick={() => {
@@ -74,6 +104,7 @@ export default function PlanDetail() {
             {roomCode}
           </button>
         )}
+
         <button
           className="btn-icon"
           onClick={() => exportPlanAsJson(plan)}
