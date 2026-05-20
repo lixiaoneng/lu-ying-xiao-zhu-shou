@@ -47,6 +47,7 @@ export default function Home({ onOpenPlan }: Props) {
       families: [],
       supplies: [],
       expenses: [],
+      menuItems: [],
       createdAt: now,
       updatedAt: now,
     };

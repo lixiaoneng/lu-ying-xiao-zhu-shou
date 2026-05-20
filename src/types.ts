@@ -51,6 +51,14 @@ export interface Expense {
   includeInAA: boolean;
 }
 
+export interface MenuItem {
+  id: string;
+  time: string;       // e.g. 周六、周日、Day 1
+  meal: string;       // e.g. 早餐、午餐、晚餐
+  menu: string;       // e.g. 番茄微辣火锅
+  responsible: string; // free text — family or person name
+}
+
 export interface CampingPlan {
   id: string;
   name: string;
@@ -62,6 +70,7 @@ export interface CampingPlan {
   families: Family[];
   supplies: Supply[];
   expenses: Expense[];
+  menuItems: MenuItem[];
   createdAt: string;
   updatedAt: string;
 }

@@ -56,6 +56,13 @@ export function createSamplePlan(): CampingPlan {
       { id: generateId(), payerFamilyId: fYang, item: '木炭', amount: 45, note: '', includeInAA: true },
     ],
     createdAt: now,
+    menuItems: [
+      { id: generateId(), time: '周六', meal: '午餐',   menu: '番茄微辣火锅',         responsible: '煊哥家' },
+      { id: generateId(), time: '周六', meal: '晚餐',   menu: '烤肉 + 沙拉 / 凉拌菜', responsible: '楠哥家' },
+      { id: generateId(), time: '周六', meal: '晚间饮品', menu: '小啤啤',              responsible: '煊哥' },
+      { id: generateId(), time: '周日', meal: '早餐',   menu: '简餐',                 responsible: '杨晓&易' },
+      { id: generateId(), time: '周日', meal: '午餐',   menu: '炒菜炖菜',             responsible: '煊哥' },
+    ],
     updatedAt: now,
   };
 }

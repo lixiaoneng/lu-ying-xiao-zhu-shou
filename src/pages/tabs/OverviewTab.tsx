@@ -1,8 +1,27 @@
 import { useState } from 'react';
-import type { Person, Family } from '../../types';
+import type { Person, Family, MenuItem } from '../../types';
 import { useApp } from '../../App';
 import { generateId } from '../../store';
 import Modal from '../../components/Modal';
+
+const MEAL_PRESETS = ['早餐', '午餐', '晚餐', '晚间饮品', '宵夜', '下午茶', '篝火烧烤'];
+
+// Deterministic pastel color from a string
+function responsibleColor(name: string): { bg: string; text: string } {
+  const palette = [
+    { bg: '#FFE4E4', text: '#B03020' },
+    { bg: '#E4EEFF', text: '#2848B0' },
+    { bg: '#E4F5E8', text: '#27784A' },
+    { bg: '#FFF3E0', text: '#B06820' },
+    { bg: '#F0E4FF', text: '#7028B0' },
+    { bg: '#E0F8F5', text: '#1A8080' },
+    { bg: '#FFE8F0', text: '#B02860' },
+    { bg: '#EEFAE0', text: '#4A7820' },
+  ];
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xff;
+  return palette[h % palette.length];
+}
 
 export default function OverviewTab() {
   const { plan, updatePlan, toast } = useApp();
@@ -18,6 +37,14 @@ export default function OverviewTab() {
   const [editFamily, setEditFamily] = useState<Family | null>(null);
   const [familyName, setFamilyName] = useState('');
 
+  // Menu modal
+  const [showMenuModal, setShowMenuModal] = useState(false);
+  const [editMenu, setEditMenu] = useState<MenuItem | null>(null);
+  const [mTime, setMTime] = useState('');
+  const [mMeal, setMMeal] = useState('');
+  const [mMenuText, setMMenuText] = useState('');
+  const [mResponsible, setMResponsible] = useState('');
+
   // Person modal
   const [showPersonModal, setShowPersonModal] = useState(false);
   const [editPerson, setEditPerson] = useState<Person | null>(null);
@@ -29,6 +56,44 @@ export default function OverviewTab() {
     setDirty(false);
     toast('基本信息已保存');
   }
+
+  // ─── Menu items ─────────────────────────
+  function openAddMenu() {
+    setEditMenu(null);
+    setMTime(''); setMMeal(MEAL_PRESETS[1]); setMMenuText(''); setMResponsible('');
+    setShowMenuModal(true);
+  }
+  function openEditMenu(m: MenuItem) {
+    setEditMenu(m);
+    setMTime(m.time); setMMeal(m.meal); setMMenuText(m.menu); setMResponsible(m.responsible);
+    setShowMenuModal(true);
+  }
+  function saveMenu() {
+    if (!mTime.trim() || !mMenuText.trim()) return;
+    const item: MenuItem = {
+      id: editMenu?.id ?? generateId(),
+      time: mTime.trim(),
+      meal: mMeal || MEAL_PRESETS[1],
+      menu: mMenuText.trim(),
+      responsible: mResponsible.trim(),
+    };
+    const items = editMenu
+      ? plan.menuItems.map(m => m.id === editMenu.id ? item : m)
+      : [...plan.menuItems, item];
+    updatePlan({ ...plan, menuItems: items });
+    setShowMenuModal(false);
+    toast(editMenu ? '已更新' : '已添加');
+  }
+  function deleteMenu(id: string) {
+    updatePlan({ ...plan, menuItems: plan.menuItems.filter(m => m.id !== id) });
+  }
+  // Group menu items by time
+  const menuGroups = plan.menuItems.reduce<{ time: string; items: MenuItem[] }[]>((acc, item) => {
+    const g = acc.find(g => g.time === item.time);
+    if (g) g.items.push(item);
+    else acc.push({ time: item.time, items: [item] });
+    return acc;
+  }, []);
 
   // ─── Families ───────────────────────────
   function openAddFamily() {
@@ -141,6 +206,87 @@ export default function OverviewTab() {
             placeholder="营地地址"
           />
         </div>
+      </section>
+
+      {/* ── Menu ── */}
+      <section className="card" style={{ marginBottom: 14 }}>
+        <div className="section-header">
+          <span className="section-title">🍽️ 露营菜单</span>
+          <button className="btn btn-secondary btn-sm" onClick={openAddMenu}>＋ 添加</button>
+        </div>
+
+        {plan.menuItems.length === 0 ? (
+          <div className="empty-state" style={{ padding: '16px 0' }}>
+            <div className="empty-icon" style={{ fontSize: 28 }}>🥩</div>
+            <p style={{ fontSize: 13 }}>还没有菜单安排<br />添加后当做公告展示给所有人</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {menuGroups.map(group => (
+              <div key={group.time}>
+                {/* Day badge */}
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  background: 'linear-gradient(135deg, var(--primary) 0%, #E07A30 100%)',
+                  color: 'white', borderRadius: 20,
+                  padding: '3px 12px', fontSize: 12, fontWeight: 700,
+                  marginBottom: 8, letterSpacing: '0.04em',
+                }}>
+                  {group.time}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                  {group.items.map(item => {
+                    const rc = item.responsible ? responsibleColor(item.responsible) : null;
+                    return (
+                      <div key={item.id} style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        background: 'var(--bg)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-sm)',
+                        padding: '9px 12px',
+                      }}>
+                        {/* Meal tag */}
+                        <span style={{
+                          flexShrink: 0,
+                          fontSize: 11, fontWeight: 700,
+                          color: 'var(--primary)',
+                          background: 'var(--primary-dim)',
+                          border: '1px solid var(--primary-border)',
+                          borderRadius: 20, padding: '2px 8px',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {item.meal}
+                        </span>
+                        {/* Menu text */}
+                        <span style={{
+                          flex: 1, fontSize: 14, color: 'var(--text)',
+                          lineHeight: 1.4, minWidth: 0,
+                        }}>
+                          {item.menu}
+                        </span>
+                        {/* Responsible chip */}
+                        {rc && (
+                          <span style={{
+                            flexShrink: 0,
+                            fontSize: 12, fontWeight: 700,
+                            background: rc.bg, color: rc.text,
+                            borderRadius: 20, padding: '3px 10px',
+                            whiteSpace: 'nowrap',
+                          }}>
+                            {item.responsible}
+                          </span>
+                        )}
+                        {/* Actions */}
+                        <button className="btn-icon" onClick={() => openEditMenu(item)} style={{ fontSize: 14, flexShrink: 0 }}>✏️</button>
+                        <button className="btn-icon" onClick={() => deleteMenu(item.id)} style={{ fontSize: 14, flexShrink: 0 }}>🗑️</button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* ── Families ── */}
@@ -281,6 +427,66 @@ export default function OverviewTab() {
           ))}
         </div>
       )}
+
+      {/* Menu modal */}
+      <Modal
+        isOpen={showMenuModal}
+        onClose={() => setShowMenuModal(false)}
+        title={editMenu ? '编辑菜单' : '添加菜单'}
+        footer={
+          <button
+            className="btn btn-primary"
+            style={{ width: '100%' }}
+            onClick={saveMenu}
+            disabled={!mTime.trim() || !mMenuText.trim()}
+          >
+            {editMenu ? '保存修改' : '添加'}
+          </button>
+        }
+      >
+        <div style={{ display: 'flex', gap: 10 }}>
+          <div className="form-group" style={{ flex: 1 }}>
+            <label className="form-label">时间 *</label>
+            <input
+              className="input"
+              placeholder="如：周六、Day 1"
+              value={mTime}
+              onChange={e => setMTime(e.target.value)}
+              list="time-suggestions"
+              autoFocus
+            />
+            <datalist id="time-suggestions">
+              {['周五', '周六', '周日', 'Day 1', 'Day 2', 'Day 3'].map(t => (
+                <option key={t} value={t} />
+              ))}
+            </datalist>
+          </div>
+          <div className="form-group" style={{ flex: 1 }}>
+            <label className="form-label">餐次</label>
+            <select className="input" value={mMeal} onChange={e => setMMeal(e.target.value)}>
+              {MEAL_PRESETS.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="form-group">
+          <label className="form-label">菜单内容 *</label>
+          <input
+            className="input"
+            placeholder="如：番茄微辣火锅、烤肉+沙拉"
+            value={mMenuText}
+            onChange={e => setMMenuText(e.target.value)}
+          />
+        </div>
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label className="form-label">负责人</label>
+          <input
+            className="input"
+            placeholder="可填家庭/小组或个人名字"
+            value={mResponsible}
+            onChange={e => setMResponsible(e.target.value)}
+          />
+        </div>
+      </Modal>
 
       {/* Family modal */}
       <Modal

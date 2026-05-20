@@ -21,7 +21,9 @@ export function savePlans(plans: CampingPlan[]): void {
 }
 
 export function loadPlan(id: string): CampingPlan | null {
-  return loadPlans().find(p => p.id === id) ?? null;
+  const p = loadPlans().find(p => p.id === id) ?? null;
+  if (p) { p.menuItems = p.menuItems ?? []; }
+  return p;
 }
 
 export function savePlan(plan: CampingPlan): void {
@@ -71,6 +73,7 @@ export function importPlanFromJson(json: string): CampingPlan | null {
     if (!plan.id || !plan.name) return null;
     plan.id = generateId();
     plan.aaMode = plan.aaMode ?? 'family';
+    plan.menuItems = plan.menuItems ?? [];
     plan.createdAt = new Date().toISOString();
     plan.updatedAt = new Date().toISOString();
     return plan;
