@@ -1,6 +1,7 @@
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { getSupabase } from './supabase';
 import type { CampingPlan } from './types';
+import { migratePlan } from './store';
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -45,7 +46,7 @@ export async function fetchPlanFromCloud(
     .eq('id', planId)
     .single();
   if (error || !data) return { plan: null, error: error?.message ?? '获取失败' };
-  return { plan: data.data as CampingPlan, error: null };
+  return { plan: migratePlan(data.data as CampingPlan), error: null };
 }
 
 export async function loadPlanByRoomCode(
@@ -61,7 +62,7 @@ export async function loadPlanByRoomCode(
   if (error || !data) {
     return { plan: null, roomCode: null, error: '找不到该房间码，请确认后重试' };
   }
-  return { plan: data.data as CampingPlan, roomCode: data.room_code as string, error: null };
+  return { plan: migratePlan(data.data as CampingPlan), roomCode: data.room_code as string, error: null };
 }
 
 export function subscribeToPlan(
@@ -77,7 +78,7 @@ export function subscribeToPlan(
       { event: 'UPDATE', schema: 'public', table: 'plans', filter: `id=eq.${planId}` },
       payload => {
         const updated = (payload.new as { data: CampingPlan }).data;
-        if (updated) onUpdate(updated);
+        if (updated) onUpdate(migratePlan(updated));
       }
     )
     .subscribe();

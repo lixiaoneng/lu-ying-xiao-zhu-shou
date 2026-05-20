@@ -20,10 +20,22 @@ export function savePlans(plans: CampingPlan[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(plans));
 }
 
+// Ensure a plan from any source (localStorage or cloud) has all required fields
+export function migratePlan(p: CampingPlan): CampingPlan {
+  return {
+    ...p,
+    aaMode: p.aaMode ?? 'family',
+    menuItems: p.menuItems ?? [],
+    people: p.people ?? [],
+    families: p.families ?? [],
+    supplies: p.supplies ?? [],
+    expenses: p.expenses ?? [],
+  };
+}
+
 export function loadPlan(id: string): CampingPlan | null {
   const p = loadPlans().find(p => p.id === id) ?? null;
-  if (p) { p.menuItems = p.menuItems ?? []; }
-  return p;
+  return p ? migratePlan(p) : null;
 }
 
 export function savePlan(plan: CampingPlan): void {
