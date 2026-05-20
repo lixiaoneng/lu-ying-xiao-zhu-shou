@@ -18,9 +18,9 @@ const FAMILY_COLORS: { bg: string; text: string; border: string }[] = [
 ];
 
 const TYPE_LABELS: Record<SupplyType, string> = {
-  personal: '个人物品',
-  food: '公共食材',
-  gear: '营地装备',
+  personal: '🎒 个人物品',
+  food: '🍖 公共食材',
+  gear: '⛺ 营地装备',
 };
 
 export default function SuppliesTab() {
@@ -171,8 +171,10 @@ export default function SuppliesTab() {
       {/* Supply list */}
       {filtered.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon" style={{ fontSize: 32, opacity: 0.3 }}>○</div>
-          <p>还没有{SUPPLY_TYPE_LABELS[activeType]}项目<br />点击右下角 ＋ 添加</p>
+          <div className="empty-icon">
+            {activeType === 'personal' ? '🎒' : activeType === 'food' ? '🍖' : '⛺'}
+          </div>
+          <p>还没有{SUPPLY_TYPE_LABELS[activeType].replace(/^[^\s]+ /, '')}项目<br />点击右下角 ＋ 添加</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -376,9 +378,9 @@ function SupplyCard({ supply: s, familyName, familyColor, onToggle, onEdit, onDe
       <button
         className="btn-icon"
         onClick={onEdit}
-        style={{ fontSize: 15, color: 'var(--text-light)' }}
+        style={{ fontSize: 15 }}
       >
-        ✎
+        ✏️
       </button>
       <button
         className="btn-icon"

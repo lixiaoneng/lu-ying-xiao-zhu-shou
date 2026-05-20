@@ -13,7 +13,7 @@ export default function SettlementTab() {
   if (plan.families.length === 0) {
     return (
       <div className="empty-state" style={{ marginTop: 40 }}>
-        <div className="empty-icon" style={{ fontSize: 32, opacity: 0.3 }}>⊜</div>
+        <div className="empty-icon">⚖️</div>
         <p>请先在「概况」中添加家庭 / 小组<br />再来计算 AA</p>
       </div>
     );
@@ -22,7 +22,7 @@ export default function SettlementTab() {
   if (plan.expenses.length === 0) {
     return (
       <div className="empty-state" style={{ marginTop: 40 }}>
-        <div className="empty-icon" style={{ fontSize: 32, opacity: 0.3 }}>¥</div>
+        <div className="empty-icon">💰</div>
         <p>还没有花费记录<br />在「花费」页添加后即可计算 AA</p>
       </div>
     );
@@ -32,7 +32,7 @@ export default function SettlementTab() {
   if (aaExpenses.length === 0) {
     return (
       <div className="empty-state" style={{ marginTop: 40 }}>
-        <div className="empty-icon" style={{ fontSize: 32, opacity: 0.3 }}>⊜</div>
+        <div className="empty-icon">⚖️</div>
         <p>所有花费均未标记「计入AA」<br />请在花费页面开启 AA 开关</p>
       </div>
     );
@@ -53,13 +53,13 @@ export default function SettlementTab() {
           className={`segment-btn${aaMode === 'family' ? ' active' : ''}`}
           onClick={() => setMode('family')}
         >
-          按家庭均摊
+          🏠 按家庭均摊
         </button>
         <button
           className={`segment-btn${aaMode === 'person' ? ' active' : ''}`}
           onClick={() => setMode('person')}
         >
-          按人头均摊
+          👤 按人头均摊
         </button>
       </div>
 
@@ -166,7 +166,7 @@ export default function SettlementTab() {
                   </div>
                 </div>
                 <span className={`tag ${isCreditor ? 'tag-green' : isDebtor ? 'tag-orange' : 'tag-gray'}`}>
-                  {isCreditor ? '待收款' : isDebtor ? '待付款' : '已平'}
+                  {isCreditor ? '💚 待收款' : isDebtor ? '🔶 待付款' : '✓ 已平'}
                 </span>
               </div>
 
@@ -280,7 +280,7 @@ export default function SettlementTab() {
           fontSize: 15,
           marginBottom: 16,
         }}>
-          完美平衡，无需转账
+          🎉 完美平衡，无需转账！
         </div>
       )}
 

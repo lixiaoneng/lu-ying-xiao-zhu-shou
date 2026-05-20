@@ -1,11 +1,11 @@
 import { useApp, type TabId } from '../App';
 
-const TABS: { id: TabId; label: string }[] = [
-  { id: 'overview',   label: '概况' },
-  { id: 'supplies',   label: '物资' },
-  { id: 'expenses',   label: '花费' },
-  { id: 'settlement', label: 'AA' },
-  { id: 'share',      label: '分享' },
+const TABS: { id: TabId; label: string; icon: string }[] = [
+  { id: 'overview',   label: '概况', icon: '🗺' },
+  { id: 'supplies',   label: '物资', icon: '🎒' },
+  { id: 'expenses',   label: '花费', icon: '💰' },
+  { id: 'settlement', label: 'AA',   icon: '⚖️' },
+  { id: 'share',      label: '分享', icon: '📤' },
 ];
 
 export default function BottomNav() {
@@ -20,8 +20,8 @@ export default function BottomNav() {
       width: '100%',
       maxWidth: 480,
       background: 'rgba(255,255,255,0.97)',
-      backdropFilter: 'blur(16px)',
-      WebkitBackdropFilter: 'blur(16px)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
       borderTop: '1px solid var(--border)',
       display: 'flex',
       height: 'var(--nav-height)',
@@ -40,32 +40,44 @@ export default function BottomNav() {
               background: 'transparent',
               cursor: 'pointer',
               display: 'flex',
-              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 5,
-              padding: '10px 4px 8px',
-              transition: 'all 0.18s ease',
-              position: 'relative',
+              padding: '8px 4px',
+              WebkitTapHighlightColor: 'transparent',
             }}
           >
-            {/* Active dot */}
+            {/* Pill container */}
             <div style={{
-              width: 4, height: 4, borderRadius: '50%',
-              background: active ? 'var(--primary)' : 'transparent',
-              transition: 'background 0.2s',
-            }} />
-
-            <span style={{
-              fontSize: 13,
-              fontWeight: active ? 600 : 400,
-              color: active ? 'var(--primary)' : 'var(--text-light)',
-              letterSpacing: active ? '-0.01em' : '0',
-              transition: 'all 0.18s',
-              fontFamily: 'Noto Sans SC, sans-serif',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 3,
+              padding: active ? '6px 14px' : '6px 6px',
+              borderRadius: 14,
+              background: active ? 'var(--primary-dim)' : 'transparent',
+              transition: 'all 0.22s cubic-bezier(0.34,1.56,0.64,1)',
+              minWidth: active ? 52 : 32,
             }}>
-              {tab.label}
-            </span>
+              <span style={{
+                fontSize: active ? 20 : 17,
+                lineHeight: 1,
+                transition: 'font-size 0.22s ease',
+                opacity: active ? 1 : 0.45,
+              }}>
+                {tab.icon}
+              </span>
+              <span style={{
+                fontSize: 10,
+                fontWeight: active ? 700 : 400,
+                color: active ? 'var(--primary)' : 'var(--text-light)',
+                fontFamily: 'Noto Sans SC, sans-serif',
+                letterSpacing: active ? '-0.01em' : '0.01em',
+                transition: 'all 0.18s ease',
+                lineHeight: 1,
+              }}>
+                {tab.label}
+              </span>
+            </div>
           </button>
         );
       })}

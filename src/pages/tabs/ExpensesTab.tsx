@@ -142,6 +142,7 @@ export default function ExpensesTab() {
           alignItems: 'center',
           gap: 10,
         }}>
+          <span style={{ fontSize: 20, flexShrink: 0 }}>📦</span>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--primary)' }}>
               {unsyncedSupplies.length} 项物资可同步到花费
@@ -205,7 +206,7 @@ export default function ExpensesTab() {
       {/* Expense list */}
       {plan.expenses.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon" style={{ fontSize: 32, opacity: 0.3 }}>¥</div>
+          <div className="empty-icon">💰</div>
           <p>还没有花费记录<br />点击右下角 ＋ 添加</p>
         </div>
       ) : (
@@ -471,9 +472,9 @@ function ExpenseRow({ expense: e, onEdit, onDelete, onToggleAA }: RowProps) {
       <button
         className="btn-icon"
         onClick={onEdit}
-        style={{ fontSize: 15, color: 'var(--text-light)' }}
+        style={{ fontSize: 15 }}
       >
-        ✎
+        ✏️
       </button>
       <button
         className="btn-icon"

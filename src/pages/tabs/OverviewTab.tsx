@@ -135,7 +135,7 @@ export default function OverviewTab() {
       {/* ── Basic info ───────────────────────────── */}
       <section className="card" style={{ marginBottom: 12 }}>
         <div className="section-header">
-          <span className="section-title">基本信息</span>
+          <span className="section-title">📋 基本信息</span>
           {dirty && (
             <button className="btn btn-primary btn-sm" onClick={saveBasic}>保存</button>
           )}
@@ -184,7 +184,7 @@ export default function OverviewTab() {
       {/* ── Menu ─────────────────────────────────── */}
       <section className="card" style={{ marginBottom: 12 }}>
         <div className="section-header">
-          <span className="section-title">露营菜单</span>
+          <span className="section-title">🍽 露营菜单</span>
           <button className="btn btn-secondary btn-sm" onClick={openAddMenu}>＋ 添加</button>
         </div>
 
@@ -249,7 +249,7 @@ export default function OverviewTab() {
       {/* ── Families ─────────────────────────────── */}
       <section className="card" style={{ marginBottom: 12 }}>
         <div className="section-header">
-          <span className="section-title">家庭 / 小组</span>
+          <span className="section-title">🏠 家庭 / 小组</span>
           <button className="btn btn-secondary btn-sm" onClick={openAddFamily}>＋ 添加</button>
         </div>
         {plan.families.length === 0 ? (
@@ -293,7 +293,7 @@ export default function OverviewTab() {
       {/* ── People ───────────────────────────────── */}
       <section className="card" style={{ marginBottom: 16 }}>
         <div className="section-header">
-          <span className="section-title">参与成员</span>
+          <span className="section-title">👥 参与成员</span>
           <button
             className="btn btn-secondary btn-sm"
             onClick={openAddPerson}
