@@ -4,14 +4,6 @@ import { useApp } from '../../App';
 import { generateId } from '../../store';
 import Modal from '../../components/Modal';
 
-const FAMILY_PALETTE = [
-  { bg: '#EEF6F2', border: '#C0DCC8', avatarBg: '#D8EDE2', avatarText: '#3D6B4F', totalColor: '#3D6B4F' },
-  { bg: '#FBF3EF', border: '#E0C4B4', avatarBg: '#F5DDD0', avatarText: '#C06840', totalColor: '#C06840' },
-  { bg: '#FBF9F1', border: '#E8DDCA', avatarBg: '#F0E8CC', avatarText: '#9A6830', totalColor: '#9A6830' },
-  { bg: '#EEF0F6', border: '#C8D0E0', avatarBg: '#D8DCF0', avatarText: '#4A5F8A', totalColor: '#4A5F8A' },
-  { bg: '#F0F6F8', border: '#B8D4DC', avatarBg: '#C8E4EC', avatarText: '#2A6878', totalColor: '#2A6878' },
-];
-
 export default function ExpensesTab() {
   const { plan, updatePlan, toast } = useApp();
   const [showModal, setShowModal] = useState(false);
@@ -19,21 +11,20 @@ export default function ExpensesTab() {
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [selectedSupplyIds, setSelectedSupplyIds] = useState<Set<string>>(new Set());
 
+  // Form state
   const [fPayer, setFPayer] = useState('');
   const [fItem, setFItem] = useState('');
   const [fAmount, setFAmount] = useState('');
   const [fNote, setFNote] = useState('');
   const [fInclude, setFInclude] = useState(true);
 
-  const syncableSupplies = plan.supplies.filter(s => s.needsAA && s.price != null && s.price > 0);
+  // 有预估金额且标记AA的物资，已在花费里有同名记录的排除掉
+  const syncableSupplies = plan.supplies.filter(s =>
+    s.needsAA && s.price != null && s.price > 0
+  );
   const unsyncedSupplies = syncableSupplies.filter(s =>
     !plan.expenses.some(e => e.item === s.name && e.payerFamilyId === s.assigneeId)
   );
-
-  const familyMap = Object.fromEntries(plan.families.map(f => [f.id, f.name]));
-
-  const aaTotal = plan.expenses.filter(e => e.includeInAA).reduce((s, e) => s + e.amount, 0);
-  const total = plan.expenses.reduce((s, e) => s + e.amount, 0);
 
   function openSyncModal() {
     setSelectedSupplyIds(new Set(unsyncedSupplies.map(s => s.id)));
@@ -65,6 +56,12 @@ export default function ExpensesTab() {
     setShowSyncModal(false);
   }
 
+  const aaTotal = plan.expenses
+    .filter(e => e.includeInAA)
+    .reduce((s, e) => s + e.amount, 0);
+
+  const total = plan.expenses.reduce((s, e) => s + e.amount, 0);
+
   function openAdd() {
     setEditExpense(null);
     setFPayer(plan.families[0]?.id ?? '');
@@ -88,6 +85,7 @@ export default function ExpensesTab() {
   function saveExpense() {
     const amount = parseFloat(fAmount);
     if (!fItem.trim() || !fPayer || isNaN(amount) || amount <= 0) return;
+
     if (editExpense) {
       updatePlan({
         ...plan,
@@ -95,19 +93,17 @@ export default function ExpensesTab() {
           ? { ...e, payerFamilyId: fPayer, item: fItem.trim(), amount, note: fNote.trim(), includeInAA: fInclude }
           : e),
       });
-      toast('花费已更新');
+      toast('花费记录已更新');
     } else {
-      updatePlan({
-        ...plan,
-        expenses: [...plan.expenses, {
-          id: generateId(),
-          payerFamilyId: fPayer,
-          item: fItem.trim(),
-          amount,
-          note: fNote.trim(),
-          includeInAA: fInclude,
-        }],
-      });
+      const newExp: Expense = {
+        id: generateId(),
+        payerFamilyId: fPayer,
+        item: fItem.trim(),
+        amount,
+        note: fNote.trim(),
+        includeInAA: fInclude,
+      };
+      updatePlan({ ...plan, expenses: [...plan.expenses, newExp] });
       toast('花费已记录');
     }
     setShowModal(false);
@@ -125,24 +121,27 @@ export default function ExpensesTab() {
     });
   }
 
+  // Group by family
   const byFamily = plan.families.map(f => ({
     family: f,
     expenses: plan.expenses.filter(e => e.payerFamilyId === f.id),
     total: plan.expenses.filter(e => e.payerFamilyId === f.id).reduce((s, e) => s + e.amount, 0),
   })).filter(g => g.expenses.length > 0);
 
+  // Uncategorized
   const uncategorized = plan.expenses.filter(
     e => !plan.families.some(f => f.id === e.payerFamilyId)
   );
 
+  const familyMap = Object.fromEntries(plan.families.map(f => [f.id, f.name]));
+
   return (
     <div style={{ padding: '14px 14px 0' }}>
-
       {/* Sync banner */}
       {unsyncedSupplies.length > 0 && (
         <div style={{
           background: 'var(--primary-dim)',
-          border: '1px solid var(--primary-border)',
+          border: '1.5px solid var(--primary-border)',
           borderRadius: 'var(--radius-sm)',
           padding: '12px 14px',
           marginBottom: 12,
@@ -150,62 +149,48 @@ export default function ExpensesTab() {
           alignItems: 'center',
           gap: 10,
         }}>
-          <span style={{ fontSize: 20, flexShrink: 0 }}>📦</span>
+          <span style={{ fontSize: 20 }}>📦</span>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--primary)' }}>
-              {unsyncedSupplies.length} 项物资可同步到花费
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)' }}>
+              有 {unsyncedSupplies.length} 项物资可同步
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-              已填金额的 AA 物资，一键导入
+              已填金额的 AA 物资，一键导入花费
             </div>
           </div>
           <button className="btn btn-primary btn-sm" onClick={openSyncModal}>
-            同步
+            同步 →
           </button>
         </div>
       )}
 
-      {/* Summary */}
+      {/* Summary cards */}
       {plan.expenses.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-          {/* Total */}
           <div style={{
-            background: 'var(--card)',
+            background: 'linear-gradient(135deg, var(--primary) 0%, #E07A30 100%)',
             borderRadius: 'var(--radius-sm)',
-            border: '1px solid var(--border)',
             padding: '14px 16px',
+            color: 'white',
           }}>
-            <div style={{ fontSize: 12, color: 'var(--text-light)', marginBottom: 6 }}>总花费</div>
-            <div style={{
-              fontSize: 26, fontWeight: 700, color: 'var(--text)',
-              fontFamily: "'Noto Serif SC', serif",
-              lineHeight: 1,
-            }}>
+            <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>总花费</div>
+            <div style={{ fontSize: 24, fontFamily: 'ZCOOL XiaoWei, serif' }}>
               ¥{total.toFixed(0)}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 5 }}>
-              {plan.expenses.length} 笔记录
-            </div>
+            <div style={{ fontSize: 11, opacity: 0.75, marginTop: 2 }}>{plan.expenses.length} 笔</div>
           </div>
-          {/* AA Total */}
           <div style={{
-            background: 'var(--primary-dim)',
+            background: 'linear-gradient(135deg, var(--green) 0%, #5A9A72 100%)',
             borderRadius: 'var(--radius-sm)',
-            border: '1px solid var(--primary-border)',
             padding: '14px 16px',
+            color: 'white',
           }}>
-            <div style={{ fontSize: 12, color: 'var(--primary)', opacity: 0.8, marginBottom: 6 }}>计入 AA</div>
-            <div style={{
-              fontSize: 26, fontWeight: 700, color: 'var(--primary)',
-              fontFamily: "'Noto Serif SC', serif",
-              lineHeight: 1,
-            }}>
+            <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>计入 AA</div>
+            <div style={{ fontSize: 24, fontFamily: 'ZCOOL XiaoWei, serif' }}>
               ¥{aaTotal.toFixed(0)}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--primary)', opacity: 0.65, marginTop: 5 }}>
-              {plan.families.length > 0
-                ? `每家约 ¥${(aaTotal / plan.families.length).toFixed(0)}`
-                : '待添加家庭'}
+            <div style={{ fontSize: 11, opacity: 0.75, marginTop: 2 }}>
+              每家 ¥{plan.families.length > 0 ? (aaTotal / plan.families.length).toFixed(0) : '-'}
             </div>
           </div>
         </div>
@@ -218,57 +203,30 @@ export default function ExpensesTab() {
           <p>还没有花费记录<br />点击右下角 ＋ 添加</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {byFamily.map(({ family, expenses, total: fTotal }, i) => {
-            const pal = FAMILY_PALETTE[i % FAMILY_PALETTE.length];
-            return (
-              <div key={family.id} style={{
-                background: pal.bg,
-                borderRadius: 'var(--radius-sm)',
-                border: `1px solid ${pal.border}`,
-                padding: '12px',
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {byFamily.map(({ family, expenses, total: fTotal }) => (
+            <div key={family.id}>
+              {/* Family header */}
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                marginBottom: 7,
               }}>
                 <div style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  marginBottom: 10,
+                  fontSize: 12, fontWeight: 700, color: 'var(--text-muted)',
+                  letterSpacing: '0.06em',
+                  display: 'flex', alignItems: 'center', gap: 6,
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{
-                      width: 26, height: 26, borderRadius: '50%',
-                      background: pal.avatarBg,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 12, fontWeight: 700, color: pal.avatarText,
-                      flexShrink: 0,
-                    }}>
-                      {family.name.slice(0, 1)}
-                    </div>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
-                      {family.name}
-                    </span>
-                  </div>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: pal.totalColor }}>
-                    垫付 ¥{fTotal.toFixed(0)}
-                  </span>
+                  <span>{family.name}</span>
+                  <div style={{ flex: 1, height: 1, background: 'var(--border)', width: 40 }} />
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {expenses.map(e => (
-                    <ExpenseRow
-                      key={e.id}
-                      expense={e}
-                      onEdit={() => openEdit(e)}
-                      onDelete={() => deleteExpense(e.id)}
-                      onToggleAA={() => toggleAA(e.id)}
-                    />
-                  ))}
-                </div>
+                <span style={{
+                  fontSize: 13, fontWeight: 700, color: 'var(--primary)',
+                }}>
+                  垫付 ¥{fTotal.toFixed(0)}
+                </span>
               </div>
-            );
-          })}
-          {uncategorized.length > 0 && (
-            <div>
-              <div style={{ fontSize: 12, color: 'var(--text-light)', marginBottom: 8 }}>其他</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {uncategorized.map(e => (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                {expenses.map(e => (
                   <ExpenseRow
                     key={e.id}
                     expense={e}
@@ -278,6 +236,22 @@ export default function ExpensesTab() {
                   />
                 ))}
               </div>
+            </div>
+          ))}
+          {uncategorized.length > 0 && (
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 7 }}>
+                其他
+              </div>
+              {uncategorized.map(e => (
+                <ExpenseRow
+                  key={e.id}
+                  expense={e}
+                  onEdit={() => openEdit(e)}
+                  onDelete={() => deleteExpense(e.id)}
+                  onToggleAA={() => toggleAA(e.id)}
+                />
+              ))}
             </div>
           )}
         </div>
@@ -309,7 +283,7 @@ export default function ExpensesTab() {
               onClick={doSync}
               disabled={selectedSupplyIds.size === 0}
             >
-              同步 {selectedSupplyIds.size} 条
+              同步 {selectedSupplyIds.size} 条 →
             </button>
           </div>
         }
@@ -330,7 +304,7 @@ export default function ExpensesTab() {
                   padding: '10px 12px',
                   borderRadius: 'var(--radius-xs)',
                   border: `1.5px solid ${checked ? 'var(--primary)' : 'var(--border)'}`,
-                  background: checked ? 'var(--primary-dim)' : alreadySynced ? 'var(--bg-soft)' : 'white',
+                  background: checked ? 'var(--primary-dim)' : alreadySynced ? 'var(--bg-warm)' : 'white',
                   cursor: alreadySynced ? 'default' : 'pointer',
                   opacity: alreadySynced ? 0.55 : 1,
                   transition: 'all 0.15s',
@@ -342,13 +316,10 @@ export default function ExpensesTab() {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 14, fontWeight: 500 }}>{s.name}</div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                    {familyMap[s.assigneeId] ?? '未知'}{s.quantity ? ` · ${s.quantity}` : ''}
+                    {familyMap[s.assigneeId] ?? '未知'} · {s.quantity || '—'}
                   </div>
                 </div>
-                <div style={{
-                  fontSize: 15, fontWeight: 700,
-                  color: alreadySynced ? 'var(--text-muted)' : 'var(--primary)',
-                }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: alreadySynced ? 'var(--text-muted)' : 'var(--primary)' }}>
                   {alreadySynced ? '已同步' : `¥${s.price}`}
                 </div>
               </div>
@@ -357,7 +328,7 @@ export default function ExpensesTab() {
         </div>
       </Modal>
 
-      {/* Add / Edit modal */}
+      {/* Modal */}
       <Modal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
@@ -369,7 +340,7 @@ export default function ExpensesTab() {
             onClick={saveExpense}
             disabled={!fItem.trim() || !fPayer || !fAmount || parseFloat(fAmount) <= 0}
           >
-            {editExpense ? '保存修改' : '记录花费'}
+            {editExpense ? '保存' : '记录花费'}
           </button>
         }
       >
@@ -409,7 +380,7 @@ export default function ExpensesTab() {
           <label className="form-label">备注</label>
           <input
             className="input"
-            placeholder="可选"
+            placeholder="可选备注"
             value={fNote}
             onChange={e => setFNote(e.target.value)}
           />
@@ -425,6 +396,7 @@ export default function ExpensesTab() {
           />
         </div>
       </Modal>
+
     </div>
   );
 }
@@ -439,63 +411,37 @@ interface RowProps {
 function ExpenseRow({ expense: e, onEdit, onDelete, onToggleAA }: RowProps) {
   return (
     <div style={{
-      background: 'white',
+      background: 'var(--card)',
       borderRadius: 'var(--radius-xs)',
-      border: '1px solid rgba(0,0,0,0.07)',
-      padding: '11px 12px',
+      border: '1px solid var(--border)',
+      borderLeft: `3.5px solid ${e.includeInAA ? 'var(--primary)' : 'var(--border-dark)'}`,
+      padding: '10px 12px',
       display: 'flex',
-      alignItems: 'flex-start',
+      alignItems: 'center',
       gap: 10,
     }}>
-      {/* Left: item name / note / AA tag stacked */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--text)', lineHeight: 1.4 }}>
-          {e.item}
-        </div>
-        {e.note && (
-          <div style={{ fontSize: 12, color: 'var(--text-light)', marginTop: 2, lineHeight: 1.4 }}>
-            {e.note}
-          </div>
-        )}
-        <div style={{ marginTop: 6 }}>
-          {e.includeInAA ? (
-            <span className="tag" style={{
-              background: 'var(--accent-dim)',
-              color: 'var(--accent)',
-              border: '1px solid var(--accent-border)',
-            }}>AA</span>
-          ) : (
-            <span className="tag tag-gray">不AA</span>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+          <span style={{ fontSize: 15, fontWeight: 500 }}>{e.item}</span>
+          {e.note && (
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{e.note}</span>
           )}
         </div>
-      </div>
-
-      {/* Right: amount on top, action buttons below */}
-      <div style={{
-        flexShrink: 0,
-        display: 'flex', flexDirection: 'column',
-        alignItems: 'flex-end', gap: 8,
-      }}>
-        <div style={{
-          fontSize: 18, fontWeight: 700, color: 'var(--text)',
-          fontFamily: "'Noto Serif SC', serif",
-          lineHeight: 1,
-        }}>
-          ¥{e.amount.toFixed(0)}
-        </div>
-        <div style={{ display: 'flex', gap: 2 }}>
-          <button
-            className="btn-icon"
-            onClick={onToggleAA}
-            style={{ fontSize: 13, color: 'var(--text-light)' }}
-            title="切换 AA"
-          >
-            ⇌
-          </button>
-          <button className="btn-icon" onClick={onEdit} style={{ fontSize: 15 }}>✏️</button>
-          <button className="btn-icon" onClick={onDelete} style={{ fontSize: 14, color: 'var(--text-light)' }}>✕</button>
+        <div style={{ marginTop: 4, display: 'flex', gap: 5, alignItems: 'center' }}>
+          {e.includeInAA
+            ? <span className="tag tag-orange">AA</span>
+            : <span className="tag tag-gray">不AA</span>
+          }
         </div>
       </div>
+      <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--primary)', flexShrink: 0 }}>
+        ¥{e.amount.toFixed(0)}
+      </div>
+      <button className="btn-icon" onClick={onToggleAA} style={{ fontSize: 14 }} title="切换AA">
+        ⚖️
+      </button>
+      <button className="btn-icon" onClick={onEdit} style={{ fontSize: 14 }}>✏️</button>
+      <button className="btn-icon" onClick={onDelete} style={{ fontSize: 14 }}>🗑️</button>
     </div>
   );
 }

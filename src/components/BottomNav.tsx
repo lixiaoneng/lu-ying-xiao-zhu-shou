@@ -1,11 +1,11 @@
 import { useApp, type TabId } from '../App';
 
 const TABS: { id: TabId; label: string; icon: string }[] = [
-  { id: 'overview',   label: '概况', icon: '🗺' },
-  { id: 'supplies',   label: '物资', icon: '🎒' },
-  { id: 'expenses',   label: '花费', icon: '💰' },
-  { id: 'settlement', label: 'AA',   icon: '⚖️' },
-  { id: 'share',      label: '分享', icon: '📤' },
+  { id: 'overview',    label: '概况', icon: '🗺️' },
+  { id: 'supplies',    label: '物资', icon: '📦' },
+  { id: 'expenses',    label: '花费', icon: '💰' },
+  { id: 'settlement',  label: 'AA',   icon: '⚖️' },
+  { id: 'share',       label: '分享', icon: '💬' },
 ];
 
 export default function BottomNav() {
@@ -19,9 +19,9 @@ export default function BottomNav() {
       transform: 'translateX(-50%)',
       width: '100%',
       maxWidth: 480,
-      background: 'rgba(255,255,255,0.97)',
-      backdropFilter: 'blur(20px)',
-      WebkitBackdropFilter: 'blur(20px)',
+      background: 'rgba(255,255,255,0.96)',
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
       borderTop: '1px solid var(--border)',
       display: 'flex',
       height: 'var(--nav-height)',
@@ -40,48 +40,37 @@ export default function BottomNav() {
               background: 'transparent',
               cursor: 'pointer',
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '8px 4px',
-              WebkitTapHighlightColor: 'transparent',
-            }}
-          >
-            {/* Pill container */}
-            <div style={{
-              display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: 3,
-              padding: active ? '7px 16px' : '6px 6px',
-              borderRadius: 14,
-              background: active
-                ? 'linear-gradient(145deg, #D8EDE2 0%, #C4DDD0 100%)'
-                : 'transparent',
-              boxShadow: active ? '0 2px 10px rgba(60,110,80,0.18)' : 'none',
-              transition: 'all 0.24s cubic-bezier(0.34,1.56,0.64,1)',
-              minWidth: active ? 56 : 32,
-              transform: active ? 'translateY(-1px)' : 'translateY(0)',
+              padding: '8px 4px',
+              position: 'relative',
+              transition: 'all 0.18s ease',
+            }}
+          >
+            {/* Active indicator */}
+            {active && (
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: '25%',
+                width: '50%',
+                height: 2.5,
+                background: 'var(--primary)',
+                borderRadius: '0 0 3px 3px',
+              }} />
+            )}
+            <span style={{ fontSize: 22, lineHeight: 1 }}>{tab.icon}</span>
+            <span style={{
+              fontSize: 11,
+              fontWeight: active ? 700 : 400,
+              color: active ? 'var(--primary)' : 'var(--text-muted)',
+              letterSpacing: '0.02em',
+              transition: 'color 0.18s',
             }}>
-              <span style={{
-                fontSize: active ? 21 : 17,
-                lineHeight: 1,
-                transition: 'font-size 0.22s ease, transform 0.22s ease',
-                opacity: active ? 1 : 0.40,
-              }}>
-                {tab.icon}
-              </span>
-              <span style={{
-                fontSize: 10,
-                fontWeight: active ? 700 : 400,
-                color: active ? 'var(--primary)' : 'var(--text-light)',
-                fontFamily: 'Noto Sans SC, sans-serif',
-                letterSpacing: active ? '-0.01em' : '0.01em',
-                transition: 'all 0.18s ease',
-                lineHeight: 1,
-              }}>
-                {tab.label}
-              </span>
-            </div>
+              {tab.label}
+            </span>
           </button>
         );
       })}
