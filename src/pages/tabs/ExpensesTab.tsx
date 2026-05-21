@@ -4,6 +4,21 @@ import { useApp } from '../../App';
 import { generateId } from '../../store';
 import Modal from '../../components/Modal';
 
+/** 只允许数字 + 最多一个小数点 + 最多两位小数 */
+function sanitizeAmount(val: string): string {
+  // 去掉所有非数字、非小数点字符
+  let v = val.replace(/[^\d.]/g, '');
+  // 只保留第一个小数点
+  const dotIndex = v.indexOf('.');
+  if (dotIndex !== -1) {
+    v = v.slice(0, dotIndex + 1) + v.slice(dotIndex + 1).replace(/\./g, '');
+    // 最多保留两位小数
+    const parts = v.split('.');
+    if (parts[1].length > 2) v = parts[0] + '.' + parts[1].slice(0, 2);
+  }
+  return v;
+}
+
 export default function ExpensesTab() {
   const { plan, updatePlan, toast } = useApp();
   const [showModal, setShowModal] = useState(false);
@@ -361,19 +376,18 @@ export default function ExpensesTab() {
             value={fItem}
             onChange={e => setFItem(e.target.value)}
             autoFocus
+            maxLength={20}
           />
         </div>
         <div className="form-group">
           <label className="form-label">金额（元） *</label>
           <input
             className="input"
-            type="number"
+            type="text"
             inputMode="decimal"
             placeholder="0.00"
             value={fAmount}
-            onChange={e => setFAmount(e.target.value)}
-            min="0"
-            step="0.01"
+            onChange={e => setFAmount(sanitizeAmount(e.target.value))}
           />
         </div>
         <div className="form-group">
@@ -383,6 +397,7 @@ export default function ExpensesTab() {
             placeholder="可选备注"
             value={fNote}
             onChange={e => setFNote(e.target.value)}
+            maxLength={20}
           />
         </div>
         <div className="toggle-wrap">

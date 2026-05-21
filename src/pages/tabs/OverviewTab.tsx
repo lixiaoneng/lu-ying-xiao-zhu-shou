@@ -184,6 +184,7 @@ export default function OverviewTab() {
             value={name}
             onChange={e => { setName(e.target.value); setDirty(true); }}
             placeholder="露营计划名称"
+            maxLength={20}
           />
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
@@ -204,6 +205,7 @@ export default function OverviewTab() {
             value={location}
             onChange={e => { setLocation(e.target.value); setDirty(true); }}
             placeholder="营地地址"
+            maxLength={20}
           />
         </div>
       </section>
@@ -454,6 +456,7 @@ export default function OverviewTab() {
               onChange={e => setMTime(e.target.value)}
               list="time-suggestions"
               autoFocus
+              maxLength={20}
             />
             <datalist id="time-suggestions">
               {['周五', '周六', '周日', 'Day 1', 'Day 2', 'Day 3'].map(t => (
@@ -475,6 +478,7 @@ export default function OverviewTab() {
             placeholder="如：番茄微辣火锅、烤肉+沙拉"
             value={mMenuText}
             onChange={e => setMMenuText(e.target.value)}
+            maxLength={20}
           />
         </div>
         <div className="form-group" style={{ marginBottom: 0 }}>
@@ -484,6 +488,7 @@ export default function OverviewTab() {
             placeholder="可填家庭/小组或个人名字"
             value={mResponsible}
             onChange={e => setMResponsible(e.target.value)}
+            maxLength={20}
           />
         </div>
       </Modal>
@@ -512,6 +517,7 @@ export default function OverviewTab() {
             value={familyName}
             onChange={e => setFamilyName(e.target.value)}
             autoFocus
+            maxLength={20}
           />
         </div>
       </Modal>
@@ -540,6 +546,7 @@ export default function OverviewTab() {
             value={personName}
             onChange={e => setPersonName(e.target.value)}
             autoFocus
+            maxLength={20}
           />
         </div>
         <div className="form-group" style={{ marginBottom: 0 }}>

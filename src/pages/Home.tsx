@@ -266,7 +266,7 @@ export default function Home({ onOpenPlan }: Props) {
               <h3 style={{ fontSize: 18, marginBottom: 20 }}>新建露营计划</h3>
               <div className="form-group">
                 <label className="form-label">计划名称 *</label>
-                <input className="input" placeholder="例：五月山野露营" value={newName} onChange={e => setNewName(e.target.value)} autoFocus />
+                <input className="input" placeholder="例：五月山野露营" value={newName} onChange={e => setNewName(e.target.value)} autoFocus maxLength={20} />
               </div>
               <div className="form-group">
                 <label className="form-label">日期</label>
@@ -274,7 +274,7 @@ export default function Home({ onOpenPlan }: Props) {
               </div>
               <div className="form-group">
                 <label className="form-label">地点</label>
-                <input className="input" placeholder="例：北京延庆松山营地" value={newLoc} onChange={e => setNewLoc(e.target.value)} />
+                <input className="input" placeholder="例：北京延庆松山营地" value={newLoc} onChange={e => setNewLoc(e.target.value)} maxLength={20} />
               </div>
 
               {cloudEnabled && (

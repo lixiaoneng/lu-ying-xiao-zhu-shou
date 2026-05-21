@@ -5,6 +5,18 @@ import { useApp } from '../../App';
 import { generateId } from '../../store';
 import Modal from '../../components/Modal';
 
+/** 只允许数字 + 最多一个小数点 + 最多两位小数 */
+function sanitizeAmount(val: string): string {
+  let v = val.replace(/[^\d.]/g, '');
+  const dotIndex = v.indexOf('.');
+  if (dotIndex !== -1) {
+    v = v.slice(0, dotIndex + 1) + v.slice(dotIndex + 1).replace(/\./g, '');
+    const parts = v.split('.');
+    if (parts[1].length > 2) v = parts[0] + '.' + parts[1].slice(0, 2);
+  }
+  return v;
+}
+
 const SUPPLY_ACCENT: Record<SupplyType, string> = {
   personal: '#C8651A',
   food: '#3D6B4F',
@@ -245,6 +257,7 @@ export default function SuppliesTab() {
             value={fName}
             onChange={e => setFName(e.target.value)}
             autoFocus
+            maxLength={20}
           />
         </div>
         <div className="form-group">
@@ -271,6 +284,7 @@ export default function SuppliesTab() {
             placeholder="例：2斤、若干、各自带"
             value={fQty}
             onChange={e => setFQty(e.target.value)}
+            maxLength={20}
           />
         </div>
         {activeType === 'food' && (
@@ -287,13 +301,11 @@ export default function SuppliesTab() {
             <label className="form-label">预估金额（元）</label>
             <input
               className="input"
-              type="number"
+              type="text"
               inputMode="decimal"
               placeholder="填了可一键同步到花费"
               value={fPrice}
-              onChange={e => setFPrice(e.target.value)}
-              min="0"
-              step="0.01"
+              onChange={e => setFPrice(sanitizeAmount(e.target.value))}
             />
             <div style={{ fontSize: 12, color: 'var(--text-light)', marginTop: 4 }}>
               填写后可在「花费」页一键导入
