@@ -155,7 +155,13 @@ export default function App() {
       setSyncStatus('syncing');
       if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
       syncTimerRef.current = setTimeout(() => {
-        syncPlanToCloud(stamped)
+        // Use planRef.current rather than the closure's `stamped`.
+        // If Realtime delivered a newer version from another device within
+        // the debounce window, we sync *that* version instead of overwriting
+        // it with our stale local snapshot.
+        const toSync = planRef.current;
+        if (!toSync) return;
+        syncPlanToCloud(toSync)
           .then(({ error }) => setSyncDone(!!error))
           .catch(() => setSyncDone(true));
       }, 300);
@@ -163,13 +169,17 @@ export default function App() {
   }, [roomCode, setSyncDone]);
 
   const forceSync = useCallback(() => {
-    if (!plan || !roomCode || !isSupabaseConfigured()) return;
+    // Use planRef.current so we always push the *latest* plan state,
+    // and so `plan` doesn't have to be in the deps (preventing cascading
+    // re-renders of all context consumers on every plan mutation).
+    const toSync = planRef.current;
+    if (!toSync || !roomCode || !isSupabaseConfigured()) return;
     setSyncStatus('syncing');
     if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
-    syncPlanToCloud(plan)
+    syncPlanToCloud(toSync)
       .then(({ error }) => setSyncDone(!!error))
       .catch(() => setSyncDone(true));
-  }, [plan, roomCode, setSyncDone]);
+  }, [roomCode, setSyncDone]);
 
   // Auto-retry sync when network comes back online (placed after setSyncDone is defined)
   useEffect(() => {
