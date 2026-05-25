@@ -192,125 +192,95 @@ export default function Home({ onOpenPlan }: Props) {
     <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
       {/* Hero */}
       <div style={{
-        /* 初夏傍晚：琥珀天空 → 深土 → 松林绿（提亮可见） */
-        background: 'linear-gradient(170deg, #D06828 0%, #943A0E 34%, #5E3018 58%, #3D6035 100%)',
-        padding: '44px 24px 94px', position: 'relative', overflow: 'hidden',
+        background: 'linear-gradient(160deg, #E8783C 0%, #C85616 40%, #D4824C 72%, #E8A850 100%)',
+        padding: '48px 24px 72px', position: 'relative', overflow: 'hidden',
       }}>
-        {/* Sunset warm radial — top-right glow */}
+        {/* 日落光晕 — 右上，主光源 */}
         <div style={{
-          position: 'absolute', top: -90, right: -70,
-          width: 280, height: 280, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(225,138,45,0.22) 0%, transparent 68%)',
+          position: 'absolute', top: -80, right: -60,
+          width: 320, height: 320, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(255,215,110,0.26) 0%, transparent 62%)',
           pointerEvents: 'none',
         }} />
-        {/* Forest ambiance — cool left blob */}
+        {/* 左侧柔和环境光 */}
         <div style={{
           position: 'absolute', top: -30, left: -50,
           width: 200, height: 200, borderRadius: '50%',
-          background: 'rgba(55,85,50,0.20)',
+          background: 'rgba(255,235,175,0.08)',
           pointerEvents: 'none',
         }} />
-        {/* Sandy mid warmth — subtle center layer */}
+        {/* 底部极淡松绿气息 — 只是空气感，不做颜色块 */}
         <div style={{
-          position: 'absolute', top: '30%', left: '25%',
-          width: 180, height: 100, borderRadius: '50%',
-          background: 'rgba(205,165,85,0.06)',
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: 56,
+          background: 'linear-gradient(to top, rgba(155,200,155,0.10) 0%, transparent 100%)',
           pointerEvents: 'none',
         }} />
 
-        {/* Cloud badge — frosted glass, top-right corner */}
+        {/* 云端 badge — 右上角毛玻璃 */}
         {cloudEnabled && (
           <div style={{
             position: 'absolute', top: 14, right: 14, zIndex: 3,
             display: 'flex', alignItems: 'center', gap: 5,
-            background: 'rgba(255,255,255,0.11)',
+            background: 'rgba(255,255,255,0.13)',
             backdropFilter: 'blur(10px)',
             WebkitBackdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255,255,255,0.16)',
+            border: '1px solid rgba(255,255,255,0.18)',
             borderRadius: 20, padding: '4px 10px 4px 8px',
-            fontSize: 11, color: 'rgba(255,255,255,0.84)',
+            fontSize: 11, color: 'rgba(255,255,255,0.88)',
             fontWeight: 500, letterSpacing: '0.02em',
             pointerEvents: 'none',
           }}>
-            <span style={{
-              width: 5, height: 5, borderRadius: '50%',
-              background: '#96CC8A', flexShrink: 0,
-            }} />
+            <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#A8D898', flexShrink: 0 }} />
             云端多人协作开启
           </div>
         )}
 
-        {/* Crescent moon — sits in mid-right sky, clear of badge */}
+        {/* 月牙 */}
         <div style={{ position: 'absolute', top: 30, right: 64, pointerEvents: 'none' }}>
           <div style={{
             width: 28, height: 28, borderRadius: '50%',
-            background: 'rgba(255,238,148,0.28)',
-            boxShadow: '0 0 22px rgba(255,218,60,0.18)',
+            background: 'rgba(255,242,160,0.30)',
+            boxShadow: '0 0 20px rgba(255,220,70,0.18)',
           }} />
-          {/* Mask to create crescent — color approximates local gradient */}
           <div style={{
             position: 'absolute', top: -3, right: -5,
             width: 21, height: 21, borderRadius: '50%',
-            background: '#8C3C0E',
+            background: '#C06020',
           }} />
         </div>
 
-        {/* Stars — upper sky band */}
-        {([
-          { t: 14, r: 110 }, { t: 38, r: 140 }, { t: 9,  r: 170 },
-          { t: 26, r: 200 }, { t: 52, r: 96  }, { t: 18, r: 240 },
-        ] as {t:number,r:number}[]).map((s, i) => (
+        {/* 星点 — 4颗，克制 */}
+        {([{ t: 14, r: 108 }, { t: 40, r: 140 }, { t: 9, r: 168 }, { t: 26, r: 202 }] as {t:number,r:number}[]).map((s, i) => (
           <div key={i} style={{
             position: 'absolute', top: s.t, right: s.r,
-            width: i === 2 ? 2.5 : 1.8, height: i === 2 ? 2.5 : 1.8,
-            borderRadius: '50%',
-            background: `rgba(255,252,230,${0.28 + (i % 3) * 0.09})`,
+            width: 2, height: 2, borderRadius: '50%',
+            background: `rgba(255,252,230,${0.30 + (i % 2) * 0.12})`,
             pointerEvents: 'none',
           }} />
         ))}
 
-        {/* Camping scene — preserveAspectRatio="none" ensures full-width fill on any screen */}
-        <svg viewBox="0 0 400 90" preserveAspectRatio="none"
-          style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: 90, pointerEvents: 'none' }}>
-          {/* Back hill — 降低不透明度，让渐变绿色透出 */}
-          <path d="M 0 90 L 0 56 Q 82 4 168 44 Q 218 66 270 38 Q 334 4 400 50 L 400 90 Z"
-            fill="rgba(20,42,20,0.36)" />
-          {/* Foreground ground */}
-          <path d="M 0 90 L 0 76 Q 62 62 126 70 Q 184 78 244 64 Q 310 50 400 66 L 400 90 Z"
-            fill="rgba(14,32,16,0.50)" />
-          {/* Left pine cluster — 深绿可见色，而非纯黑 */}
-          <polygon points="24,64 34,83 14,83"  fill="rgba(22,52,24,0.72)" />
-          <polygon points="29,54 41,72 17,72"  fill="rgba(26,56,28,0.62)" />
-          <polygon points="9,70 17,83 1,83"    fill="rgba(22,52,24,0.54)" />
-          {/* Tent — warm canvas tint, centered in viewBox */}
-          <polygon points="200,33 240,78 160,78" fill="rgba(228,195,145,0.18)" />
-          <polygon points="200,33 220,78 180,78" fill="rgba(8,18,8,0.12)" />
-          {/* Tent door — firelight glow */}
-          <path d="M 197 78 Q 200 62 203 78" fill="rgba(255,188,55,0.46)" />
-          <ellipse cx="200" cy="79" rx="16" ry="5" fill="rgba(255,170,42,0.22)" />
-          {/* Sandy soil hint along base */}
-          <path d="M 148 78 Q 200 73 252 78"
-            stroke="rgba(195,158,95,0.15)" strokeWidth="2" fill="none" />
-          {/* Right pine cluster */}
-          <polygon points="330,54 342,79 318,79" fill="rgba(22,52,24,0.68)" />
-          <polygon points="335,43 349,66 321,66" fill="rgba(26,56,28,0.58)" />
-          <polygon points="354,61 363,79 345,79" fill="rgba(22,52,24,0.50)" />
+        {/* 地平线 — 仅一条极淡曲线，过渡自然 */}
+        <svg viewBox="0 0 400 44" preserveAspectRatio="none"
+          style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: 44, pointerEvents: 'none' }}>
+          <path d="M 0 44 L 0 30 Q 100 8 200 24 Q 300 38 400 22 L 400 44 Z"
+            fill="rgba(255,255,255,0.06)" />
+          <path d="M 0 44 L 0 38 Q 200 32 400 38 L 400 44 Z"
+            fill="rgba(255,255,255,0.05)" />
         </svg>
 
-        {/* Text content */}
+        {/* 文字内容 */}
         <div style={{ position: 'relative', zIndex: 2 }}>
-          <div style={{ fontSize: 40, marginBottom: 6, filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.28))' }}>⛺</div>
+          <div style={{ fontSize: 50, marginBottom: 8, filter: 'drop-shadow(0 3px 10px rgba(0,0,0,0.20))' }}>⛺</div>
           <h1 style={{
             fontSize: 28, color: 'white', margin: 0,
             letterSpacing: '0.04em', lineHeight: 1.2,
-            textShadow: '0 2px 12px rgba(0,0,0,0.32)',
+            textShadow: '0 2px 12px rgba(0,0,0,0.22)',
           }}>
             露营小助手
           </h1>
           <p style={{
-            color: 'rgba(255,255,255,0.70)', fontSize: 13.5,
-            marginTop: 10, lineHeight: 1.7,
-            letterSpacing: '0.10em',   /* 呼吸感 */
+            color: 'rgba(255,255,255,0.72)', fontSize: 13.5,
+            marginTop: 10, lineHeight: 1.7, letterSpacing: '0.10em',
           }}>
             有组织地松弛一下
           </p>
