@@ -192,8 +192,8 @@ export default function Home({ onOpenPlan }: Props) {
     <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
       {/* Hero */}
       <div style={{
-        /* 初夏傍晚：琥珀天空 → 深土 → 松林暗绿 */
-        background: 'linear-gradient(170deg, #D06828 0%, #943A0E 36%, #5A2C12 62%, #253821 100%)',
+        /* 初夏傍晚：琥珀天空 → 深土 → 松林绿（提亮可见） */
+        background: 'linear-gradient(170deg, #D06828 0%, #943A0E 34%, #5E3018 58%, #3D6035 100%)',
         padding: '44px 24px 94px', position: 'relative', overflow: 'hidden',
       }}>
         {/* Sunset warm radial — top-right glow */}
@@ -272,29 +272,29 @@ export default function Home({ onOpenPlan }: Props) {
         {/* Camping scene — preserveAspectRatio="none" ensures full-width fill on any screen */}
         <svg viewBox="0 0 400 90" preserveAspectRatio="none"
           style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: 90, pointerEvents: 'none' }}>
-          {/* Back hill — dark pine silhouette */}
+          {/* Back hill — 降低不透明度，让渐变绿色透出 */}
           <path d="M 0 90 L 0 56 Q 82 4 168 44 Q 218 66 270 38 Q 334 4 400 50 L 400 90 Z"
-            fill="rgba(22,38,22,0.54)" />
+            fill="rgba(20,42,20,0.36)" />
           {/* Foreground ground */}
           <path d="M 0 90 L 0 76 Q 62 62 126 70 Q 184 78 244 64 Q 310 50 400 66 L 400 90 Z"
-            fill="rgba(14,26,16,0.70)" />
-          {/* Left pine cluster */}
-          <polygon points="24,64 34,83 14,83"  fill="rgba(10,20,12,0.78)" />
-          <polygon points="29,54 41,72 17,72"  fill="rgba(12,22,14,0.68)" />
-          <polygon points="9,70 17,83 1,83"    fill="rgba(10,20,12,0.60)" />
+            fill="rgba(14,32,16,0.50)" />
+          {/* Left pine cluster — 深绿可见色，而非纯黑 */}
+          <polygon points="24,64 34,83 14,83"  fill="rgba(22,52,24,0.72)" />
+          <polygon points="29,54 41,72 17,72"  fill="rgba(26,56,28,0.62)" />
+          <polygon points="9,70 17,83 1,83"    fill="rgba(22,52,24,0.54)" />
           {/* Tent — warm canvas tint, centered in viewBox */}
-          <polygon points="200,33 240,78 160,78" fill="rgba(228,195,145,0.16)" />
-          <polygon points="200,33 220,78 180,78" fill="rgba(8,14,8,0.14)" />
+          <polygon points="200,33 240,78 160,78" fill="rgba(228,195,145,0.18)" />
+          <polygon points="200,33 220,78 180,78" fill="rgba(8,18,8,0.12)" />
           {/* Tent door — firelight glow */}
-          <path d="M 197 78 Q 200 62 203 78" fill="rgba(255,188,55,0.44)" />
-          <ellipse cx="200" cy="79" rx="16" ry="5" fill="rgba(255,170,42,0.20)" />
+          <path d="M 197 78 Q 200 62 203 78" fill="rgba(255,188,55,0.46)" />
+          <ellipse cx="200" cy="79" rx="16" ry="5" fill="rgba(255,170,42,0.22)" />
           {/* Sandy soil hint along base */}
           <path d="M 148 78 Q 200 73 252 78"
-            stroke="rgba(195,158,95,0.13)" strokeWidth="2" fill="none" />
+            stroke="rgba(195,158,95,0.15)" strokeWidth="2" fill="none" />
           {/* Right pine cluster */}
-          <polygon points="330,54 342,79 318,79" fill="rgba(10,20,12,0.74)" />
-          <polygon points="335,43 349,66 321,66" fill="rgba(12,22,14,0.64)" />
-          <polygon points="354,61 363,79 345,79" fill="rgba(10,20,12,0.56)" />
+          <polygon points="330,54 342,79 318,79" fill="rgba(22,52,24,0.68)" />
+          <polygon points="335,43 349,66 321,66" fill="rgba(26,56,28,0.58)" />
+          <polygon points="354,61 363,79 345,79" fill="rgba(22,52,24,0.50)" />
         </svg>
 
         {/* Text content */}
