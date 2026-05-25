@@ -269,7 +269,7 @@ export default function SuppliesTab() {
           </select>
         </div>
         <div className="form-group">
-          <label className="form-label">负责家庭 *</label>
+          <label className="form-label">负责人/组 *</label>
           <select className="input" value={fAssignee} onChange={e => setFAssignee(e.target.value)}>
             <option value="">请选择</option>
             {plan.families.map(f => (

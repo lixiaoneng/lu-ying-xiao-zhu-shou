@@ -7,6 +7,7 @@ export interface Person {
 export interface Family {
   id: string;
   name: string;
+  isSolo?: boolean; // true = auto-created for a single participant; name mirrors their person name
 }
 
 export type SupplyType = 'personal' | 'food' | 'gear';

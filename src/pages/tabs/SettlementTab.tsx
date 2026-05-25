@@ -15,7 +15,7 @@ export default function SettlementTab() {
     return (
       <div className="empty-state" style={{ marginTop: 40 }}>
         <div className="empty-icon">⚖️</div>
-        <p>请先在「概况」中添加家庭/小组<br />再来计算 AA</p>
+        <p>请先在「概况」中添加家庭/小组<br />或独立参与者，再来计算 AA</p>
       </div>
     );
   }
@@ -43,7 +43,7 @@ export default function SettlementTab() {
 
   const modeLabel = aaMode === 'person'
     ? `每人 ¥${s.perUnit.toFixed(0)}（共 ${s.totalUnits} 人）`
-    : `每家 ¥${s.perUnit.toFixed(0)}（共 ${s.totalUnits} 个家庭）`;
+    : `每方 ¥${s.perUnit.toFixed(0)}（共 ${s.totalUnits} 个结算方）`;
 
   return (
     <div style={{ padding: '14px 14px 0' }}>
@@ -104,7 +104,7 @@ export default function SettlementTab() {
 
       {/* Per-family breakdown */}
       <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', marginBottom: 10 }}>
-        各家明细
+        各方明细
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
         {s.familyBalances.map(fb => {
@@ -243,7 +243,7 @@ export default function SettlementTab() {
       )}
 
       <div style={{ fontSize: 12, color: 'var(--text-light)', textAlign: 'center', marginBottom: 16 }}>
-        转账方案按家庭/小组汇总，与 AA 方式无关
+        转账方案按结算主体（家庭/个人）汇总，与 AA 方式无关
       </div>
     </div>
   );

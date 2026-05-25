@@ -27,7 +27,7 @@ export function migratePlan(p: CampingPlan): CampingPlan {
     aaMode: p.aaMode ?? 'family',
     menuItems: p.menuItems ?? [],
     people: p.people ?? [],
-    families: p.families ?? [],
+    families: (p.families ?? []).map(f => ({ isSolo: false, ...f })),
     supplies: p.supplies ?? [],
     expenses: p.expenses ?? [],
   };

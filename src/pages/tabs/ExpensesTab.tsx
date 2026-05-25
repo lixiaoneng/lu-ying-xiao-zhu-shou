@@ -205,7 +205,7 @@ export default function ExpensesTab() {
               ¥{aaTotal.toFixed(0)}
             </div>
             <div style={{ fontSize: 11, opacity: 0.75, marginTop: 2 }}>
-              每家 ¥{plan.families.length > 0 ? (aaTotal / plan.families.length).toFixed(0) : '-'}
+              每方 ¥{plan.families.length > 0 ? (aaTotal / plan.families.length).toFixed(0) : '-'}
             </div>
           </div>
         </div>
@@ -304,7 +304,7 @@ export default function ExpensesTab() {
         }
       >
         <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 14 }}>
-          选择要同步的物资，将以「负责家庭」作为付款方导入花费：
+          选择要同步的物资，将以「负责方」作为付款方导入花费：
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {syncableSupplies.map(s => {
@@ -360,7 +360,7 @@ export default function ExpensesTab() {
         }
       >
         <div className="form-group">
-          <label className="form-label">付款家庭 *</label>
+          <label className="form-label">付款方 *</label>
           <select className="input" value={fPayer} onChange={e => setFPayer(e.target.value)}>
             <option value="">请选择</option>
             {plan.families.map(f => (

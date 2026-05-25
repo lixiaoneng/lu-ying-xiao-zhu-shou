@@ -4,6 +4,7 @@ import { useApp } from '../../App';
 import { generateId } from '../../store';
 import Modal from '../../components/Modal';
 
+
 const MEAL_PRESETS = ['早餐', '午餐', '晚餐', '晚间饮品', '宵夜', '下午茶', '篝火烧烤'];
 
 // Deterministic pastel color from a string
@@ -36,6 +37,10 @@ export default function OverviewTab() {
   const [showFamilyModal, setShowFamilyModal] = useState(false);
   const [editFamily, setEditFamily] = useState<Family | null>(null);
   const [familyName, setFamilyName] = useState('');
+
+  // Solo modal
+  const [showSoloModal, setShowSoloModal] = useState(false);
+  const [soloName, setSoloName] = useState('');
 
   // Menu modal
   const [showMenuModal, setShowMenuModal] = useState(false);
@@ -95,6 +100,11 @@ export default function OverviewTab() {
     return acc;
   }, []);
 
+  // Derived: non-solo families, solo family ids
+  const nonSoloFamilies = plan.families.filter(f => !f.isSolo);
+  const soloFamilyIds = new Set(plan.families.filter(f => f.isSolo).map(f => f.id));
+  const soloPeople = plan.people.filter(p => soloFamilyIds.has(p.familyId));
+
   // ─── Families ───────────────────────────
   function openAddFamily() {
     setEditFamily(null);
@@ -117,7 +127,7 @@ export default function OverviewTab() {
     } else {
       updatePlan({
         ...plan,
-        families: [...plan.families, { id: generateId(), name: familyName.trim() }],
+        families: [...plan.families, { id: generateId(), name: familyName.trim(), isSolo: false }],
       });
       toast('已添加家庭/小组');
     }
@@ -131,11 +141,38 @@ export default function OverviewTab() {
     updatePlan({ ...plan, families: plan.families.filter(f => f.id !== id) });
   }
 
+  // ─── Solo participants ───────────────────
+  function openAddSolo() {
+    setSoloName('');
+    setShowSoloModal(true);
+  }
+  function saveSolo() {
+    if (!soloName.trim()) return;
+    const fid = generateId();
+    updatePlan({
+      ...plan,
+      families: [...plan.families, { id: fid, name: soloName.trim(), isSolo: true }],
+      people: [...plan.people, { id: generateId(), name: soloName.trim(), familyId: fid }],
+    });
+    setShowSoloModal(false);
+    toast('已添加独立参与者');
+  }
+  function deleteSoloPerson(personId: string, familyId: string) {
+    updatePlan({
+      ...plan,
+      families: plan.families.filter(f => f.id !== familyId),
+      people: plan.people.filter(p => p.id !== personId),
+      // clean up supplies and expenses that referenced this solo family
+      supplies: plan.supplies.map(s => s.assigneeId === familyId ? { ...s, assigneeId: '' } : s),
+      expenses: plan.expenses.filter(e => e.payerFamilyId !== familyId),
+    });
+  }
+
   // ─── People ─────────────────────────────
   function openAddPerson() {
     setEditPerson(null);
     setPersonName('');
-    setPersonFamily(plan.families[0]?.id ?? '');
+    setPersonFamily(nonSoloFamilies[0]?.id ?? '');
     setShowPersonModal(true);
   }
   function openEditPerson(p: Person) {
@@ -145,15 +182,27 @@ export default function OverviewTab() {
     setShowPersonModal(true);
   }
   function savePerson() {
-    if (!personName.trim() || !personFamily) return;
+    if (!personName.trim()) return;
     if (editPerson) {
-      updatePlan({
-        ...plan,
-        people: plan.people.map(p => p.id === editPerson.id
-          ? { ...p, name: personName.trim(), familyId: personFamily } : p),
-      });
+      const editedFamily = plan.families.find(f => f.id === editPerson.familyId);
+      if (editedFamily?.isSolo) {
+        // Solo edit: sync name to both Person and their implicit Family
+        updatePlan({
+          ...plan,
+          people: plan.people.map(p => p.id === editPerson.id ? { ...p, name: personName.trim() } : p),
+          families: plan.families.map(f => f.id === editedFamily.id ? { ...f, name: personName.trim() } : f),
+        });
+      } else {
+        if (!personFamily) return;
+        updatePlan({
+          ...plan,
+          people: plan.people.map(p => p.id === editPerson.id
+            ? { ...p, name: personName.trim(), familyId: personFamily } : p),
+        });
+      }
       toast('成员信息已更新');
     } else {
+      if (!personFamily) return;
       updatePlan({
         ...plan,
         people: [...plan.people, { id: generateId(), name: personName.trim(), familyId: personFamily }],
@@ -165,6 +214,9 @@ export default function OverviewTab() {
   function deletePerson(id: string) {
     updatePlan({ ...plan, people: plan.people.filter(p => p.id !== id) });
   }
+
+  // Is the person being edited a solo person?
+  const isSoloEdit = !!editPerson && soloFamilyIds.has(editPerson.familyId);
 
   return (
     <div style={{ padding: '16px 16px 0' }}>
@@ -297,14 +349,14 @@ export default function OverviewTab() {
           <span className="section-title">🏠 家庭 / 小组</span>
           <button className="btn btn-secondary btn-sm" onClick={openAddFamily}>＋ 添加</button>
         </div>
-        {plan.families.length === 0 ? (
+        {nonSoloFamilies.length === 0 ? (
           <div className="empty-state" style={{ padding: '20px 0' }}>
             <div className="empty-icon">🏠</div>
             <p>还没有家庭/小组<br />先添加再邀请成员</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {plan.families.map(f => {
+            {nonSoloFamilies.map(f => {
               const memberCount = plan.people.filter(p => p.familyId === f.id).length;
               return (
                 <div key={f.id} style={{
@@ -337,28 +389,70 @@ export default function OverviewTab() {
       <section className="card" style={{ marginBottom: 14 }}>
         <div className="section-header">
           <span className="section-title">👥 参与人员</span>
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={openAddPerson}
-            disabled={plan.families.length === 0}
-            style={{ opacity: plan.families.length === 0 ? 0.4 : 1 }}
-          >
-            ＋ 添加
-          </button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button className="btn btn-secondary btn-sm" onClick={openAddSolo}>
+              ＋ 单人
+            </button>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={openAddPerson}
+              disabled={nonSoloFamilies.length === 0}
+              style={{ opacity: nonSoloFamilies.length === 0 ? 0.4 : 1 }}
+            >
+              ＋ 成员
+            </button>
+          </div>
         </div>
-        {plan.families.length === 0 && (
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>
-            请先添加家庭/小组
-          </p>
-        )}
-        {plan.people.length === 0 && plan.families.length > 0 ? (
+
+        {plan.people.length === 0 ? (
           <div className="empty-state" style={{ padding: '20px 0' }}>
             <div className="empty-icon">👥</div>
-            <p>添加露营的小伙伴吧</p>
+            <p>添加露营的小伙伴吧<br />
+              <span style={{ fontSize: 12, color: 'var(--text-light)' }}>
+                「单人」独立AA·「成员」归属家庭
+              </span>
+            </p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {plan.families.map(fam => {
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* Solo people */}
+            {soloPeople.length > 0 && (
+              <div>
+                <div style={{
+                  fontSize: 12, fontWeight: 700, color: 'var(--text-muted)',
+                  letterSpacing: '0.06em', marginBottom: 6,
+                }}>独立参与者</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {soloPeople.map(person => (
+                    <div key={person.id} style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      background: 'var(--bg)', border: '1px solid var(--border)',
+                      borderRadius: 20, padding: '5px 10px 5px 8px',
+                    }}>
+                      <div style={{
+                        width: 24, height: 24, borderRadius: '50%',
+                        background: '#E4EEFF',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 11,
+                      }}>
+                        👤
+                      </div>
+                      <span style={{ fontSize: 14 }}>{person.name}</span>
+                      <button
+                        onClick={() => openEditPerson(person)}
+                        style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--text-muted)', padding: 0 }}
+                      >✏️</button>
+                      <button
+                        onClick={() => deleteSoloPerson(person.id, person.familyId)}
+                        style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--red)', padding: 0 }}
+                      >✕</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Family-grouped people */}
+            {nonSoloFamilies.map(fam => {
               const members = plan.people.filter(p => p.familyId === fam.id);
               if (members.length === 0) return null;
               return (
@@ -409,7 +503,7 @@ export default function OverviewTab() {
           display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16,
         }}>
           {[
-            { label: '家庭数', value: plan.families.length, icon: '🏠' },
+            { label: '结算主体', value: plan.families.length, icon: '🏠' },
             { label: '参与人数', value: plan.people.length, icon: '👥' },
             { label: '物资项目', value: plan.supplies.length, icon: '📦' },
           ].map(s => (
@@ -493,6 +587,38 @@ export default function OverviewTab() {
         </div>
       </Modal>
 
+      {/* Solo modal */}
+      <Modal
+        isOpen={showSoloModal}
+        onClose={() => setShowSoloModal(false)}
+        title="添加独立参与者"
+        footer={
+          <button
+            className="btn btn-primary"
+            style={{ width: '100%' }}
+            onClick={saveSolo}
+            disabled={!soloName.trim()}
+          >
+            添加
+          </button>
+        }
+      >
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label className="form-label">姓名/昵称</label>
+          <input
+            className="input"
+            placeholder="例：小明"
+            value={soloName}
+            onChange={e => setSoloName(e.target.value)}
+            autoFocus
+            maxLength={20}
+          />
+          <div style={{ fontSize: 12, color: 'var(--text-light)', marginTop: 6 }}>
+            独立参与者作为单独结算主体参与 AA，不属于任何家庭/小组
+          </div>
+        </div>
+      </Modal>
+
       {/* Family modal */}
       <Modal
         isOpen={showFamilyModal}
@@ -526,19 +652,19 @@ export default function OverviewTab() {
       <Modal
         isOpen={showPersonModal}
         onClose={() => setShowPersonModal(false)}
-        title={editPerson ? '编辑成员' : '添加成员'}
+        title={editPerson ? (isSoloEdit ? '编辑独立参与者' : '编辑成员') : '添加成员'}
         footer={
           <button
             className="btn btn-primary"
             style={{ width: '100%' }}
             onClick={savePerson}
-            disabled={!personName.trim() || !personFamily}
+            disabled={!personName.trim() || (!isSoloEdit && !personFamily)}
           >
             {editPerson ? '保存修改' : '添加成员'}
           </button>
         }
       >
-        <div className="form-group">
+        <div className={isSoloEdit ? 'form-group' : 'form-group'} style={isSoloEdit ? { marginBottom: 0 } : {}}>
           <label className="form-label">姓名/昵称</label>
           <input
             className="input"
@@ -549,19 +675,21 @@ export default function OverviewTab() {
             maxLength={20}
           />
         </div>
-        <div className="form-group" style={{ marginBottom: 0 }}>
-          <label className="form-label">所属家庭/小组</label>
-          <select
-            className="input"
-            value={personFamily}
-            onChange={e => setPersonFamily(e.target.value)}
-          >
-            <option value="">请选择</option>
-            {plan.families.map(f => (
-              <option key={f.id} value={f.id}>{f.name}</option>
-            ))}
-          </select>
-        </div>
+        {!isSoloEdit && (
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">所属家庭/小组</label>
+            <select
+              className="input"
+              value={personFamily}
+              onChange={e => setPersonFamily(e.target.value)}
+            >
+              <option value="">请选择</option>
+              {nonSoloFamilies.map(f => (
+                <option key={f.id} value={f.id}>{f.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </Modal>
     </div>
   );
