@@ -22,6 +22,10 @@ export default function Home({ onOpenPlan }: Props) {
   const [toDelete, setToDelete] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
+  // Duplicate flow
+  const [duplicateSource, setDuplicateSource] = useState<CampingPlan | null>(null);
+  const [duplicating, setDuplicating] = useState(false);
+
   // Room join state
   const [showJoin, setShowJoin] = useState(false);
   const [joinCode, setJoinCode] = useState('');
@@ -142,11 +146,29 @@ export default function Home({ onOpenPlan }: Props) {
     refresh();
   }
 
-  function handleDuplicate(plan: CampingPlan) {
-    const copy = duplicatePlan(plan);
+  async function handleDuplicateLocal() {
+    if (!duplicateSource) return;
+    const copy = duplicatePlan(duplicateSource);
     savePlan(copy);
     refresh();
-    onOpenPlan(copy.id); // open the copy immediately
+    setDuplicateSource(null);
+    onOpenPlan(copy.id);
+  }
+
+  async function handleDuplicateCloud() {
+    if (!duplicateSource || !cloudEnabled) return;
+    setDuplicating(true);
+    const copy = duplicatePlan(duplicateSource);
+    const code = generateRoomCode();
+    const { error } = await createPlanInCloud(copy, code);
+    if (!error) {
+      copy.roomCode = code;
+    }
+    savePlan(copy);
+    refresh();
+    setDuplicating(false);
+    setDuplicateSource(null);
+    onOpenPlan(copy.id, copy.roomCode);
   }
 
   function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -255,7 +277,7 @@ export default function Home({ onOpenPlan }: Props) {
                       {p.families.length}个家庭 · {p.people.length}人
                     </div>
                   </div>
-                  <button className="btn-icon" onClick={e => { e.stopPropagation(); handleDuplicate(p); }} title="复制计划">📋</button>
+                  <button className="btn-icon" onClick={e => { e.stopPropagation(); setDuplicateSource(p); }} title="复制计划">📋</button>
                   <button className="btn-icon" onClick={e => { e.stopPropagation(); exportPlanAsJson(p); }} title="导出">📤</button>
                   <button className="btn-icon" style={{ color: 'var(--red)' }} onClick={e => { e.stopPropagation(); setToDelete(p.id); }} title="删除">🗑️</button>
                 </div>
@@ -379,6 +401,61 @@ export default function Home({ onOpenPlan }: Props) {
                 <div style={{ fontSize: 12, marginTop: 2, opacity: 0.8 }}>会覆盖本地修改，数据无法恢复</div>
               </button>
               <button className="btn btn-ghost" style={{ width: '100%' }} onClick={() => setJoinConflict(null)}>
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Duplicate confirm ── */}
+      {duplicateSource && (
+        <div
+          onClick={() => { if (!duplicating) setDuplicateSource(null); }}
+          style={{ position: 'fixed', inset: 0, zIndex: 1001, background: 'rgba(44,26,14,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px', animation: 'fadeIn 0.2s ease' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: 'var(--card)', borderRadius: 20, padding: '24px 20px', animation: 'slideUp 0.25s ease', maxWidth: 340, width: '100%' }}
+          >
+            <div style={{ fontSize: 32, textAlign: 'center', marginBottom: 12 }}>📋</div>
+            <h3 style={{ fontSize: 17, marginBottom: 8, textAlign: 'center' }}>复制露营计划</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.7, marginBottom: 6, textAlign: 'center' }}>
+              将复制「{duplicateSource.name}」的全部人员、物资、菜单和花费，生成一个全新的独立计划。
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
+              {cloudEnabled && (
+                <button
+                  className="btn btn-primary"
+                  style={{ width: '100%', textAlign: 'left', padding: '13px 16px', display: 'block', opacity: duplicating ? 0.6 : 1 }}
+                  onClick={handleDuplicateCloud}
+                  disabled={duplicating}
+                >
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>
+                    {duplicating ? '上传中…' : '☁️ 生成房间码'}
+                  </div>
+                  <div style={{ fontSize: 12, opacity: 0.8, marginTop: 2, fontWeight: 400 }}>
+                    上传云端，可分享给朋友一起协作
+                  </div>
+                </button>
+              )}
+              <button
+                className="btn btn-secondary"
+                style={{ width: '100%', textAlign: 'left', padding: '13px 16px', display: 'block', opacity: duplicating ? 0.6 : 1 }}
+                onClick={handleDuplicateLocal}
+                disabled={duplicating}
+              >
+                <div style={{ fontWeight: 700, fontSize: 14 }}>💾 仅本地复制</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                  只保存在当前设备，不生成房间码
+                </div>
+              </button>
+              <button
+                className="btn btn-ghost"
+                style={{ width: '100%' }}
+                onClick={() => setDuplicateSource(null)}
+                disabled={duplicating}
+              >
                 取消
               </button>
             </div>
