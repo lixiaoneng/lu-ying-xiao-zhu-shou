@@ -192,60 +192,127 @@ export default function Home({ onOpenPlan }: Props) {
     <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
       {/* Hero */}
       <div style={{
-        background: 'linear-gradient(155deg, #C8651A 0%, #A84E10 52%, #7A3A08 100%)',
-        padding: '44px 24px 96px', position: 'relative', overflow: 'hidden',
+        /* 初夏傍晚：琥珀天空 → 深土 → 松林暗绿 */
+        background: 'linear-gradient(170deg, #D06828 0%, #943A0E 36%, #5A2C12 62%, #253821 100%)',
+        padding: '44px 24px 94px', position: 'relative', overflow: 'hidden',
       }}>
-        {/* Depth layers */}
-        <div style={{ position: 'absolute', top: -50, right: -50, width: 220, height: 220, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
-        <div style={{ position: 'absolute', top: 24, right: 18, width: 90, height: 90, borderRadius: '50%', background: 'rgba(255,255,255,0.035)' }} />
-        <div style={{ position: 'absolute', top: -10, left: -30, width: 140, height: 140, borderRadius: '50%', background: 'rgba(0,0,0,0.08)' }} />
+        {/* Sunset warm radial — top-right glow */}
+        <div style={{
+          position: 'absolute', top: -90, right: -70,
+          width: 280, height: 280, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(225,138,45,0.22) 0%, transparent 68%)',
+          pointerEvents: 'none',
+        }} />
+        {/* Forest ambiance — cool left blob */}
+        <div style={{
+          position: 'absolute', top: -30, left: -50,
+          width: 200, height: 200, borderRadius: '50%',
+          background: 'rgba(55,85,50,0.20)',
+          pointerEvents: 'none',
+        }} />
+        {/* Sandy mid warmth — subtle center layer */}
+        <div style={{
+          position: 'absolute', top: '30%', left: '25%',
+          width: 180, height: 100, borderRadius: '50%',
+          background: 'rgba(205,165,85,0.06)',
+          pointerEvents: 'none',
+        }} />
 
-        {/* Crescent moon */}
-        <div style={{ position: 'absolute', top: 26, right: 30 }}>
-          <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(255,238,148,0.26)', boxShadow: '0 0 20px rgba(255,215,60,0.16)' }} />
-          <div style={{ position: 'absolute', top: -3, right: -5, width: 22, height: 22, borderRadius: '50%', background: '#9A4010' }} />
+        {/* Cloud badge — frosted glass, top-right corner */}
+        {cloudEnabled && (
+          <div style={{
+            position: 'absolute', top: 14, right: 14, zIndex: 3,
+            display: 'flex', alignItems: 'center', gap: 5,
+            background: 'rgba(255,255,255,0.11)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255,255,255,0.16)',
+            borderRadius: 20, padding: '4px 10px 4px 8px',
+            fontSize: 11, color: 'rgba(255,255,255,0.84)',
+            fontWeight: 500, letterSpacing: '0.02em',
+            pointerEvents: 'none',
+          }}>
+            <span style={{
+              width: 5, height: 5, borderRadius: '50%',
+              background: '#96CC8A', flexShrink: 0,
+            }} />
+            云端多人协作开启
+          </div>
+        )}
+
+        {/* Crescent moon — sits in mid-right sky, clear of badge */}
+        <div style={{ position: 'absolute', top: 30, right: 64, pointerEvents: 'none' }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: '50%',
+            background: 'rgba(255,238,148,0.28)',
+            boxShadow: '0 0 22px rgba(255,218,60,0.18)',
+          }} />
+          {/* Mask to create crescent — color approximates local gradient */}
+          <div style={{
+            position: 'absolute', top: -3, right: -5,
+            width: 21, height: 21, borderRadius: '50%',
+            background: '#8C3C0E',
+          }} />
         </div>
 
-        {/* Stars */}
-        {([{ t: 18, r: 76 }, { t: 44, r: 108 }, { t: 12, r: 152 }, { t: 34, r: 182 }, { t: 56, r: 68 }] as {t:number,r:number}[]).map((s, i) => (
+        {/* Stars — upper sky band */}
+        {([
+          { t: 14, r: 110 }, { t: 38, r: 140 }, { t: 9,  r: 170 },
+          { t: 26, r: 200 }, { t: 52, r: 96  }, { t: 18, r: 240 },
+        ] as {t:number,r:number}[]).map((s, i) => (
           <div key={i} style={{
             position: 'absolute', top: s.t, right: s.r,
-            width: i === 2 ? 3 : 2, height: i === 2 ? 3 : 2,
-            borderRadius: '50%', background: `rgba(255,255,255,${0.28 + (i % 3) * 0.08})`,
+            width: i === 2 ? 2.5 : 1.8, height: i === 2 ? 2.5 : 1.8,
+            borderRadius: '50%',
+            background: `rgba(255,252,230,${0.28 + (i % 3) * 0.09})`,
+            pointerEvents: 'none',
           }} />
         ))}
 
-        {/* Camping scene */}
-        <svg viewBox="0 0 375 90" preserveAspectRatio="xMidYMax meet"
+        {/* Camping scene — preserveAspectRatio="none" ensures full-width fill on any screen */}
+        <svg viewBox="0 0 400 90" preserveAspectRatio="none"
           style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: 90, pointerEvents: 'none' }}>
-          {/* Back hill */}
-          <path d="M 0 90 L 0 58 Q 75 8 155 46 Q 205 66 258 40 Q 318 8 375 50 L 375 90 Z" fill="rgba(0,0,0,0.17)" />
-          {/* Ground */}
-          <path d="M 0 90 L 0 76 Q 55 63 115 70 Q 172 77 232 63 Q 295 50 375 66 L 375 90 Z" fill="rgba(0,0,0,0.28)" />
-          {/* Left pines */}
-          <polygon points="24,66 33,83 15,83" fill="rgba(0,0,0,0.38)" />
-          <polygon points="28,57 39,73 17,73" fill="rgba(0,0,0,0.30)" />
-          <polygon points="10,72 17,83 3,83"  fill="rgba(0,0,0,0.26)" />
-          {/* Tent */}
-          <polygon points="191,36 228,77 154,77" fill="rgba(255,255,255,0.13)" />
-          <polygon points="191,36 209,77 173,77" fill="rgba(0,0,0,0.10)" />
-          {/* Door warm glow */}
-          <path d="M 188 77 Q 191 64 194 77" fill="rgba(255,188,55,0.38)" />
-          <ellipse cx="191" cy="78" rx="14" ry="5" fill="rgba(255,172,45,0.20)" />
-          {/* Right pines */}
-          <polygon points="316,57 327,79 305,79" fill="rgba(0,0,0,0.32)" />
-          <polygon points="320,47 333,68 307,68" fill="rgba(0,0,0,0.26)" />
-          <polygon points="340,63 349,79 331,79" fill="rgba(0,0,0,0.24)" />
+          {/* Back hill — dark pine silhouette */}
+          <path d="M 0 90 L 0 56 Q 82 4 168 44 Q 218 66 270 38 Q 334 4 400 50 L 400 90 Z"
+            fill="rgba(22,38,22,0.54)" />
+          {/* Foreground ground */}
+          <path d="M 0 90 L 0 76 Q 62 62 126 70 Q 184 78 244 64 Q 310 50 400 66 L 400 90 Z"
+            fill="rgba(14,26,16,0.70)" />
+          {/* Left pine cluster */}
+          <polygon points="24,64 34,83 14,83"  fill="rgba(10,20,12,0.78)" />
+          <polygon points="29,54 41,72 17,72"  fill="rgba(12,22,14,0.68)" />
+          <polygon points="9,70 17,83 1,83"    fill="rgba(10,20,12,0.60)" />
+          {/* Tent — warm canvas tint, centered in viewBox */}
+          <polygon points="200,33 240,78 160,78" fill="rgba(228,195,145,0.16)" />
+          <polygon points="200,33 220,78 180,78" fill="rgba(8,14,8,0.14)" />
+          {/* Tent door — firelight glow */}
+          <path d="M 197 78 Q 200 62 203 78" fill="rgba(255,188,55,0.44)" />
+          <ellipse cx="200" cy="79" rx="16" ry="5" fill="rgba(255,170,42,0.20)" />
+          {/* Sandy soil hint along base */}
+          <path d="M 148 78 Q 200 73 252 78"
+            stroke="rgba(195,158,95,0.13)" strokeWidth="2" fill="none" />
+          {/* Right pine cluster */}
+          <polygon points="330,54 342,79 318,79" fill="rgba(10,20,12,0.74)" />
+          <polygon points="335,43 349,66 321,66" fill="rgba(12,22,14,0.64)" />
+          <polygon points="354,61 363,79 345,79" fill="rgba(10,20,12,0.56)" />
         </svg>
 
-        {/* Text */}
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ fontSize: 40, marginBottom: 6, filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.2))' }}>⛺</div>
-          <h1 style={{ fontSize: 28, color: 'white', letterSpacing: '0.04em', textShadow: '0 2px 10px rgba(0,0,0,0.28)', lineHeight: 1.2, margin: 0 }}>
+        {/* Text content */}
+        <div style={{ position: 'relative', zIndex: 2 }}>
+          <div style={{ fontSize: 40, marginBottom: 6, filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.28))' }}>⛺</div>
+          <h1 style={{
+            fontSize: 28, color: 'white', margin: 0,
+            letterSpacing: '0.04em', lineHeight: 1.2,
+            textShadow: '0 2px 12px rgba(0,0,0,0.32)',
+          }}>
             露营小助手
           </h1>
-          <p style={{ color: 'rgba(255,255,255,0.76)', fontSize: 13, marginTop: 9, lineHeight: 1.55, letterSpacing: '0.01em' }}>
-            把对账留给我，你只管把肉烤好
+          <p style={{
+            color: 'rgba(255,255,255,0.70)', fontSize: 13.5,
+            marginTop: 10, lineHeight: 1.7,
+            letterSpacing: '0.10em',   /* 呼吸感 */
+          }}>
+            有组织地松弛一下
           </p>
         </div>
       </div>
@@ -254,7 +321,7 @@ export default function Home({ onOpenPlan }: Props) {
       <div style={{ flex: 1, padding: '20px 16px 32px' }}>
 
         {/* Action buttons */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: cloudEnabled ? 10 : 24 }}>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
           <button className="btn btn-primary" onClick={() => setShowNew(true)} style={{ flex: 1, fontSize: 15, padding: '14px 0' }}>
             ＋ 新建露营计划
           </button>
@@ -268,24 +335,6 @@ export default function Home({ onOpenPlan }: Props) {
           </button>
           <input ref={fileRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
         </div>
-
-        {/* Cloud status — subtle ambient indicator */}
-        {cloudEnabled && (
-          <div style={{
-            fontSize: 12, color: '#4A7A5A',
-            background: 'rgba(74,122,90,0.07)',
-            border: '1px solid rgba(74,122,90,0.16)',
-            borderRadius: 20, padding: '5px 12px',
-            marginBottom: 16, display: 'inline-flex', alignItems: 'center', gap: 7,
-          }}>
-            <span style={{
-              width: 6, height: 6, borderRadius: '50%',
-              background: '#5A9A6A', flexShrink: 0,
-              boxShadow: '0 0 0 3px rgba(74,122,90,0.18)',
-            }} />
-            营地同步已开启 · 多人协作就绪
-          </div>
-        )}
 
         {/* Plan list */}
         {plans.length === 0 ? (
