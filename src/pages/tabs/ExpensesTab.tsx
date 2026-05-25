@@ -190,7 +190,7 @@ export default function ExpensesTab() {
           }}>
             <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>总花费</div>
             <div style={{ fontSize: 24, fontFamily: 'ZCOOL XiaoWei, serif' }}>
-              ¥{total.toFixed(0)}
+              ¥{total.toFixed(2)}
             </div>
             <div style={{ fontSize: 11, opacity: 0.75, marginTop: 2 }}>{plan.expenses.length} 笔</div>
           </div>
@@ -202,10 +202,10 @@ export default function ExpensesTab() {
           }}>
             <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>计入 AA</div>
             <div style={{ fontSize: 24, fontFamily: 'ZCOOL XiaoWei, serif' }}>
-              ¥{aaTotal.toFixed(0)}
+              ¥{aaTotal.toFixed(2)}
             </div>
             <div style={{ fontSize: 11, opacity: 0.75, marginTop: 2 }}>
-              每方 ¥{plan.families.length > 0 ? (aaTotal / plan.families.length).toFixed(0) : '-'}
+              每方 ¥{plan.families.length > 0 ? (aaTotal / plan.families.length).toFixed(2) : '-'}
             </div>
           </div>
         </div>
@@ -237,7 +237,7 @@ export default function ExpensesTab() {
                 <span style={{
                   fontSize: 13, fontWeight: 700, color: 'var(--primary)',
                 }}>
-                  垫付 ¥{fTotal.toFixed(0)}
+                  垫付 ¥{fTotal.toFixed(2)}
                 </span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
@@ -450,7 +450,7 @@ function ExpenseRow({ expense: e, onEdit, onDelete, onToggleAA }: RowProps) {
         </div>
       </div>
       <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--primary)', flexShrink: 0 }}>
-        ¥{e.amount.toFixed(0)}
+        ¥{e.amount.toFixed(2)}
       </div>
       <button className="btn-icon" onClick={onToggleAA} style={{ fontSize: 14 }} title="切换AA">
         ⚖️

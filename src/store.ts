@@ -28,9 +28,60 @@ export function migratePlan(p: CampingPlan): CampingPlan {
     menuItems: p.menuItems ?? [],
     people: p.people ?? [],
     families: (p.families ?? []).map(f => ({ isSolo: false, ...f })),
-    supplies: p.supplies ?? [],
+    // Ensure every supply has needsAA (old gear items may lack it → default false)
+    supplies: (p.supplies ?? []).map(s => ({ ...s, needsAA: s.needsAA ?? false })),
     expenses: p.expenses ?? [],
   };
+}
+
+// Deep-clone a plan as a new independent copy (no shared references, no roomCode)
+export function duplicatePlan(source: CampingPlan): CampingPlan {
+  // JSON round-trip guarantees a fully independent deep copy
+  const clone = JSON.parse(JSON.stringify(source)) as CampingPlan;
+  const now = new Date().toISOString();
+
+  // New identity
+  clone.id = generateId();
+  clone.name = `${source.name}（副本）`;
+  clone.createdAt = now;
+  clone.updatedAt = now;
+
+  // Strip cloud sync state
+  delete clone.roomCode;
+
+  // Re-generate ALL item IDs and remap cross-references
+  // so the two plans are 100% independent at the data level
+  const familyIdMap: Record<string, string> = {};
+  clone.families = clone.families.map(f => {
+    const newId = generateId();
+    familyIdMap[f.id] = newId;
+    return { ...f, id: newId };
+  });
+
+  clone.people = clone.people.map(p => ({
+    ...p,
+    id: generateId(),
+    familyId: familyIdMap[p.familyId] ?? p.familyId,
+  }));
+
+  clone.supplies = clone.supplies.map(s => ({
+    ...s,
+    id: generateId(),
+    assigneeId: familyIdMap[s.assigneeId] ?? s.assigneeId,
+  }));
+
+  clone.expenses = clone.expenses.map(e => ({
+    ...e,
+    id: generateId(),
+    payerFamilyId: familyIdMap[e.payerFamilyId] ?? e.payerFamilyId,
+  }));
+
+  clone.menuItems = clone.menuItems.map(m => ({
+    ...m,
+    id: generateId(),
+  }));
+
+  return clone;
 }
 
 export function loadPlan(id: string): CampingPlan | null {

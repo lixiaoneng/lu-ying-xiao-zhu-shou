@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import type { CampingPlan } from '../types';
 import {
   loadPlans, loadPlan, savePlan, deletePlan, generateId,
-  exportPlanAsJson, importPlanFromJson,
+  exportPlanAsJson, importPlanFromJson, duplicatePlan,
 } from '../store';
 import { createSamplePlan } from '../sampleData';
 import { isSupabaseConfigured } from '../supabase';
@@ -142,6 +142,13 @@ export default function Home({ onOpenPlan }: Props) {
     refresh();
   }
 
+  function handleDuplicate(plan: CampingPlan) {
+    const copy = duplicatePlan(plan);
+    savePlan(copy);
+    refresh();
+    onOpenPlan(copy.id); // open the copy immediately
+  }
+
   function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -248,6 +255,7 @@ export default function Home({ onOpenPlan }: Props) {
                       {p.families.length}个家庭 · {p.people.length}人
                     </div>
                   </div>
+                  <button className="btn-icon" onClick={e => { e.stopPropagation(); handleDuplicate(p); }} title="复制计划">📋</button>
                   <button className="btn-icon" onClick={e => { e.stopPropagation(); exportPlanAsJson(p); }} title="导出">📤</button>
                   <button className="btn-icon" style={{ color: 'var(--red)' }} onClick={e => { e.stopPropagation(); setToDelete(p.id); }} title="删除">🗑️</button>
                 </div>

@@ -77,20 +77,20 @@ export default function ShareTab() {
       if (s.totalAmount > 0) {
         lines.push('⚖️ AA 费用');
         const modeStr = s.aaMode === 'person'
-        ? `共 ${s.totalUnits} 人，每人 ¥${s.perUnit.toFixed(0)}`
-        : `共 ${s.totalUnits} 家，每家 ¥${s.perUnit.toFixed(0)}`;
-      lines.push(`  合计：¥${s.totalAmount.toFixed(0)}（${modeStr}）`);
+        ? `共 ${s.totalUnits} 人，每人 ¥${s.perUnit.toFixed(2)}`
+        : `共 ${s.totalUnits} 方，每方 ¥${s.perUnit.toFixed(2)}`;
+      lines.push(`  合计：¥${s.totalAmount.toFixed(2)}（${modeStr}）`);
         lines.push('');
         lines.push('💰 垫付情况');
         s.familyBalances.forEach(fb => {
-          const sign = fb.balance > 0.01 ? `（待收 ¥${fb.balance.toFixed(0)}）` : fb.balance < -0.01 ? `（待付 ¥${Math.abs(fb.balance).toFixed(0)}）` : '（已平）';
-          lines.push(`  ${fb.familyName}：垫付 ¥${fb.paid.toFixed(0)} ${sign}`);
+          const sign = fb.balance > 0.01 ? `（待收 ¥${fb.balance.toFixed(2)}）` : fb.balance < -0.01 ? `（待付 ¥${Math.abs(fb.balance).toFixed(2)}）` : '（已平）';
+          lines.push(`  ${fb.familyName}：垫付 ¥${fb.paid.toFixed(2)} ${sign}`);
         });
         lines.push('');
         if (s.transactions.length > 0) {
           lines.push('💸 转账方案');
           s.transactions.forEach(tx => {
-            lines.push(`  ${tx.fromFamilyName} → ${tx.toFamilyName}：¥${tx.amount.toFixed(0)}`);
+            lines.push(`  ${tx.fromFamilyName} → ${tx.toFamilyName}：¥${tx.amount.toFixed(2)}`);
           });
           lines.push('');
         }

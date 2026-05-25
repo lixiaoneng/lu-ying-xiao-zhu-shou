@@ -42,8 +42,8 @@ export default function SettlementTab() {
   const s = calculateSettlement(plan);
 
   const modeLabel = aaMode === 'person'
-    ? `每人 ¥${s.perUnit.toFixed(0)}（共 ${s.totalUnits} 人）`
-    : `每方 ¥${s.perUnit.toFixed(0)}（共 ${s.totalUnits} 个结算方）`;
+    ? `每人 ¥${s.perUnit.toFixed(2)}（共 ${s.totalUnits} 人）`
+    : `每方 ¥${s.perUnit.toFixed(2)}（共 ${s.totalUnits} 个结算方）`;
 
   return (
     <div style={{ padding: '14px 14px 0' }}>
@@ -94,7 +94,7 @@ export default function SettlementTab() {
             AA 总金额
           </div>
           <div style={{ fontSize: 36, color: 'white', fontFamily: 'ZCOOL XiaoWei, serif' }}>
-            ¥{s.totalAmount.toFixed(0)}
+            ¥{s.totalAmount.toFixed(2)}
           </div>
           <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 4 }}>
             {modeLabel}
@@ -144,15 +144,15 @@ export default function SettlementTab() {
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
                 {[
-                  { label: '已垫付', value: `¥${fb.paid.toFixed(0)}`, color: 'var(--text)' },
+                  { label: '已垫付', value: `¥${fb.paid.toFixed(2)}`, color: 'var(--text)' },
                   {
                     label: aaMode === 'person' ? `应摊(×${fb.memberCount})` : '应摊',
-                    value: `¥${fb.share.toFixed(0)}`,
+                    value: `¥${fb.share.toFixed(2)}`,
                     color: 'var(--text-muted)',
                   },
                   {
                     label: isCreditor ? '应收' : isDebtor ? '应付' : '已平',
-                    value: `¥${Math.abs(fb.balance).toFixed(0)}`,
+                    value: `¥${Math.abs(fb.balance).toFixed(2)}`,
                     color: isCreditor ? 'var(--green)' : isDebtor ? 'var(--primary)' : 'var(--text-muted)',
                   },
                 ].map(item => (
@@ -177,7 +177,7 @@ export default function SettlementTab() {
                       borderTop: '1px solid var(--bg-warm)',
                     }}>
                       <span>{e.item}{e.note ? ` (${e.note})` : ''}</span>
-                      <span style={{ color: 'var(--text)' }}>¥{e.amount.toFixed(0)}</span>
+                      <span style={{ color: 'var(--text)' }}>¥{e.amount.toFixed(2)}</span>
                     </div>
                   ))
                 }
@@ -221,7 +221,7 @@ export default function SettlementTab() {
                   fontSize: 20, fontWeight: 700, color: 'var(--text)',
                   fontFamily: 'ZCOOL XiaoWei, serif', flexShrink: 0,
                 }}>
-                  ¥{tx.amount.toFixed(0)}
+                  ¥{tx.amount.toFixed(2)}
                 </div>
               </div>
             ))}

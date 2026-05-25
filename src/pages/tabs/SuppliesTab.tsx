@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Supply, SupplyType } from '../../types';
+
 import { SUPPLY_TYPE_LABELS, SUPPLY_TYPE_ICONS, SUPPLY_CATEGORIES } from '../../types';
 import { useApp } from '../../App';
 import { generateId } from '../../store';
@@ -41,6 +42,7 @@ export default function SuppliesTab() {
   const [filterFamily, setFilterFamily] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
   const [editSupply, setEditSupply] = useState<Supply | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Supply | null>(null);
 
   // Form
   const [fName, setFName] = useState('');
@@ -117,9 +119,11 @@ export default function SuppliesTab() {
     });
   }
 
-  function deleteSupply(id: string) {
-    updatePlan({ ...plan, supplies: plan.supplies.filter(s => s.id !== id) });
+  function confirmDeleteSupply() {
+    if (!deleteTarget) return;
+    updatePlan({ ...plan, supplies: plan.supplies.filter(s => s.id !== deleteTarget.id) });
     toast('已删除');
+    setDeleteTarget(null);
   }
 
   const readyCount = filtered.filter(s => s.isReady).length;
@@ -213,7 +217,7 @@ export default function SuppliesTab() {
                       accent={accent}
                       onToggle={() => toggleReady(s.id)}
                       onEdit={() => openEdit(s)}
-                      onDelete={() => deleteSupply(s.id)}
+                      onDelete={() => setDeleteTarget(s)}
                     />
                   ))}
                 </div>
@@ -233,7 +237,45 @@ export default function SuppliesTab() {
         ＋
       </button>
 
-      {/* Modal */}
+      {/* Delete confirm modal */}
+      {deleteTarget && (
+        <div
+          onClick={() => setDeleteTarget(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1001,
+            background: 'rgba(44,26,14,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '0 24px',
+            animation: 'fadeIn 0.2s ease',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'var(--card)', borderRadius: 20,
+              padding: '24px 20px', textAlign: 'center',
+              animation: 'slideUp 0.25s ease',
+              maxWidth: 320, width: '100%',
+            }}
+          >
+            <div style={{ fontSize: 32, marginBottom: 10 }}>🗑️</div>
+            <h3 style={{ fontSize: 16, marginBottom: 6 }}>确认删除物资？</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 20, lineHeight: 1.6 }}>
+              「{deleteTarget.name}」删除后无法恢复
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-ghost" onClick={() => setDeleteTarget(null)} style={{ flex: 1 }}>
+                取消
+              </button>
+              <button className="btn btn-danger" onClick={confirmDeleteSupply} style={{ flex: 1 }}>
+                确认删除
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add / Edit Modal */}
       <Modal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
@@ -287,9 +329,16 @@ export default function SuppliesTab() {
             maxLength={20}
           />
         </div>
-        {activeType === 'food' && (
+        {(activeType === 'food' || activeType === 'gear') && (
           <div className="toggle-wrap" style={{ marginBottom: 12 }}>
-            <span style={{ fontSize: 14, color: 'var(--text)' }}>计入 AA 分摊</span>
+            <div>
+              <div style={{ fontSize: 14, color: 'var(--text)' }}>计入 AA 分摊</div>
+              {activeType === 'gear' && (
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                  炭、纸巾等消耗品可开启
+                </div>
+              )}
+            </div>
             <button
               className={`toggle${fNeedsAA ? ' on' : ''}`}
               onClick={() => setFNeedsAA(!fNeedsAA)}
