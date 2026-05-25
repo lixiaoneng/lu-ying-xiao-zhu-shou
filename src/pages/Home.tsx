@@ -192,18 +192,60 @@ export default function Home({ onOpenPlan }: Props) {
     <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
       {/* Hero */}
       <div style={{
-        background: 'linear-gradient(160deg, #C8651A 0%, #A84E10 60%, #7A3A08 100%)',
-        padding: '52px 24px 36px', position: 'relative', overflow: 'hidden',
+        background: 'linear-gradient(155deg, #C8651A 0%, #A84E10 52%, #7A3A08 100%)',
+        padding: '44px 24px 96px', position: 'relative', overflow: 'hidden',
       }}>
-        <div style={{ position: 'absolute', top: -40, right: -40, width: 180, height: 180, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
-        <div style={{ position: 'absolute', bottom: -20, left: -20, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
+        {/* Depth layers */}
+        <div style={{ position: 'absolute', top: -50, right: -50, width: 220, height: 220, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
+        <div style={{ position: 'absolute', top: 24, right: 18, width: 90, height: 90, borderRadius: '50%', background: 'rgba(255,255,255,0.035)' }} />
+        <div style={{ position: 'absolute', top: -10, left: -30, width: 140, height: 140, borderRadius: '50%', background: 'rgba(0,0,0,0.08)' }} />
+
+        {/* Crescent moon */}
+        <div style={{ position: 'absolute', top: 26, right: 30 }}>
+          <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(255,238,148,0.26)', boxShadow: '0 0 20px rgba(255,215,60,0.16)' }} />
+          <div style={{ position: 'absolute', top: -3, right: -5, width: 22, height: 22, borderRadius: '50%', background: '#9A4010' }} />
+        </div>
+
+        {/* Stars */}
+        {([{ t: 18, r: 76 }, { t: 44, r: 108 }, { t: 12, r: 152 }, { t: 34, r: 182 }, { t: 56, r: 68 }] as {t:number,r:number}[]).map((s, i) => (
+          <div key={i} style={{
+            position: 'absolute', top: s.t, right: s.r,
+            width: i === 2 ? 3 : 2, height: i === 2 ? 3 : 2,
+            borderRadius: '50%', background: `rgba(255,255,255,${0.28 + (i % 3) * 0.08})`,
+          }} />
+        ))}
+
+        {/* Camping scene */}
+        <svg viewBox="0 0 375 90" preserveAspectRatio="xMidYMax meet"
+          style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: 90, pointerEvents: 'none' }}>
+          {/* Back hill */}
+          <path d="M 0 90 L 0 58 Q 75 8 155 46 Q 205 66 258 40 Q 318 8 375 50 L 375 90 Z" fill="rgba(0,0,0,0.17)" />
+          {/* Ground */}
+          <path d="M 0 90 L 0 76 Q 55 63 115 70 Q 172 77 232 63 Q 295 50 375 66 L 375 90 Z" fill="rgba(0,0,0,0.28)" />
+          {/* Left pines */}
+          <polygon points="24,66 33,83 15,83" fill="rgba(0,0,0,0.38)" />
+          <polygon points="28,57 39,73 17,73" fill="rgba(0,0,0,0.30)" />
+          <polygon points="10,72 17,83 3,83"  fill="rgba(0,0,0,0.26)" />
+          {/* Tent */}
+          <polygon points="191,36 228,77 154,77" fill="rgba(255,255,255,0.13)" />
+          <polygon points="191,36 209,77 173,77" fill="rgba(0,0,0,0.10)" />
+          {/* Door warm glow */}
+          <path d="M 188 77 Q 191 64 194 77" fill="rgba(255,188,55,0.38)" />
+          <ellipse cx="191" cy="78" rx="14" ry="5" fill="rgba(255,172,45,0.20)" />
+          {/* Right pines */}
+          <polygon points="316,57 327,79 305,79" fill="rgba(0,0,0,0.32)" />
+          <polygon points="320,47 333,68 307,68" fill="rgba(0,0,0,0.26)" />
+          <polygon points="340,63 349,79 331,79" fill="rgba(0,0,0,0.24)" />
+        </svg>
+
+        {/* Text */}
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ fontSize: 42, marginBottom: 8 }}>⛺</div>
-          <h1 style={{ fontSize: 30, color: 'white', letterSpacing: '0.04em', textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+          <div style={{ fontSize: 40, marginBottom: 6, filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.2))' }}>⛺</div>
+          <h1 style={{ fontSize: 28, color: 'white', letterSpacing: '0.04em', textShadow: '0 2px 10px rgba(0,0,0,0.28)', lineHeight: 1.2, margin: 0 }}>
             露营小助手
           </h1>
-          <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 14, marginTop: 6 }}>
-            告别腾讯文档，轻松规划露营每件事
+          <p style={{ color: 'rgba(255,255,255,0.76)', fontSize: 13, marginTop: 9, lineHeight: 1.55, letterSpacing: '0.01em' }}>
+            把对账留给我，你只管把肉烤好
           </p>
         </div>
       </div>
@@ -227,15 +269,21 @@ export default function Home({ onOpenPlan }: Props) {
           <input ref={fileRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
         </div>
 
-        {/* Cloud status */}
+        {/* Cloud status — subtle ambient indicator */}
         {cloudEnabled && (
           <div style={{
-            fontSize: 12, color: 'var(--green)', background: 'var(--green-dim)',
-            border: '1px solid var(--green-border)',
-            borderRadius: 'var(--radius-xs)', padding: '6px 12px',
-            marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6,
+            fontSize: 12, color: '#4A7A5A',
+            background: 'rgba(74,122,90,0.07)',
+            border: '1px solid rgba(74,122,90,0.16)',
+            borderRadius: 20, padding: '5px 12px',
+            marginBottom: 16, display: 'inline-flex', alignItems: 'center', gap: 7,
           }}>
-            ☁️ 已连接 Supabase，支持多人协作
+            <span style={{
+              width: 6, height: 6, borderRadius: '50%',
+              background: '#5A9A6A', flexShrink: 0,
+              boxShadow: '0 0 0 3px rgba(74,122,90,0.18)',
+            }} />
+            营地同步已开启 · 多人协作就绪
           </div>
         )}
 
@@ -263,23 +311,62 @@ export default function Home({ onOpenPlan }: Props) {
                 <div
                   key={p.id}
                   className="card"
-                  style={{ cursor: 'pointer', animation: `slideUp 0.28s ease ${i * 0.05}s both`, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}
+                  style={{
+                    cursor: 'pointer',
+                    animation: `slideUp 0.28s ease ${i * 0.05}s both`,
+                    padding: '16px 16px',
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    transition: 'box-shadow 0.2s ease, transform 0.15s ease',
+                  }}
                   onClick={() => onOpenPlan(p.id)}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 20px rgba(200,101,26,0.13)';
+                    (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLDivElement).style.boxShadow = '';
+                    (e.currentTarget as HTMLDivElement).style.transform = '';
+                  }}
                 >
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--primary-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>⛺</div>
+                  {/* Icon */}
+                  <div style={{
+                    width: 46, height: 46, borderRadius: 13,
+                    background: 'linear-gradient(135deg, var(--primary-dim) 0%, rgba(200,101,26,0.12) 100%)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 22, flexShrink: 0,
+                    boxShadow: '0 2px 8px rgba(200,101,26,0.10)',
+                  }}>⛺</div>
+
+                  {/* Info */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 2 }}>{p.name}</div>
-                    <div style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      {p.date && <span>📅 {formatDate(p.date)}</span>}
-                      {p.location && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📍 {p.location}</span>}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                      <span style={{ fontWeight: 700, fontSize: 15 }}>{p.name}</span>
+                      {p.roomCode && (
+                        <span style={{
+                          fontSize: 10, color: '#4A7A5A',
+                          background: 'rgba(74,122,90,0.1)',
+                          border: '1px solid rgba(74,122,90,0.2)',
+                          borderRadius: 8, padding: '1px 6px', lineHeight: 1.6,
+                        }}>☁️ 云端</span>
+                      )}
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--text-light)', marginTop: 2 }}>
-                      {p.families.length}个家庭 · {p.people.length}人
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {p.date && <span>📅 {formatDate(p.date)}</span>}
+                      {p.location && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>📍 {p.location}</span>}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 3 }}>
+                      {p.people.length > 0
+                        ? `${p.people.length} 人参与 · ${p.supplies.length} 项物资`
+                        : '还没有参与者'}
                     </div>
                   </div>
-                  <button className="btn-icon" onClick={e => { e.stopPropagation(); setDuplicateSource(p); }} title="复制计划">📋</button>
-                  <button className="btn-icon" onClick={e => { e.stopPropagation(); exportPlanAsJson(p); }} title="导出">📤</button>
-                  <button className="btn-icon" style={{ color: 'var(--red)' }} onClick={e => { e.stopPropagation(); setToDelete(p.id); }} title="删除">🗑️</button>
+
+                  {/* Actions */}
+                  <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                    <button className="btn-icon" onClick={e => { e.stopPropagation(); setDuplicateSource(p); }} title="复制计划">📋</button>
+                    <button className="btn-icon" onClick={e => { e.stopPropagation(); exportPlanAsJson(p); }} title="导出">📤</button>
+                    <button className="btn-icon" style={{ color: 'var(--red)' }} onClick={e => { e.stopPropagation(); setToDelete(p.id); }} title="删除">🗑️</button>
+                  </div>
                 </div>
               ))}
             </div>
