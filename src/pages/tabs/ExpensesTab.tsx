@@ -32,6 +32,9 @@ export default function ExpensesTab() {
   const [fAmount, setFAmount] = useState('');
   const [fNote, setFNote] = useState('');
   const [fInclude, setFInclude] = useState(true);
+  // 分摊范围：'all' = 全员；string[] = 指定 family id 列表
+  const [fScopeMode, setFScopeMode] = useState<'all' | 'partial'>('all');
+  const [fScopeIds, setFScopeIds] = useState<string[]>([]);
 
   // 有预估金额且标记AA的物资，已在花费里有同名记录的排除掉
   const syncableSupplies = plan.supplies.filter(s =>
@@ -64,6 +67,7 @@ export default function ExpensesTab() {
         amount: s.price!,
         note: '从物资同步',
         includeInAA: true,
+        aaScope: 'all' as const,
       }));
     if (toAdd.length === 0) { setShowSyncModal(false); return; }
     updatePlan({ ...plan, expenses: [...plan.expenses, ...toAdd] });
@@ -77,6 +81,11 @@ export default function ExpensesTab() {
 
   const total = plan.expenses.reduce((s, e) => s + e.amount, 0);
 
+  // 是否存在部分AA费用（有任意一笔 aaScope 不是全员）
+  const hasPartialAA = plan.expenses.some(
+    e => e.includeInAA && e.aaScope && e.aaScope !== 'all'
+  );
+
   function openAdd() {
     setEditExpense(null);
     setFPayer(plan.families[0]?.id ?? '');
@@ -84,6 +93,8 @@ export default function ExpensesTab() {
     setFAmount('');
     setFNote('');
     setFInclude(true);
+    setFScopeMode('all');
+    setFScopeIds([]);
     setShowModal(true);
   }
 
@@ -94,18 +105,37 @@ export default function ExpensesTab() {
     setFAmount(String(e.amount));
     setFNote(e.note);
     setFInclude(e.includeInAA);
+    const scope = e.aaScope;
+    if (!scope || scope === 'all') {
+      setFScopeMode('all');
+      setFScopeIds([]);
+    } else {
+      setFScopeMode('partial');
+      setFScopeIds(scope as string[]);
+    }
     setShowModal(true);
+  }
+
+  function toggleScopeId(id: string) {
+    setFScopeIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
   }
 
   function saveExpense() {
     const amount = parseFloat(fAmount);
     if (!fItem.trim() || !fPayer || isNaN(amount) || amount <= 0) return;
 
+    // 分摊范围：全员时存 'all'，指定时存 id 列表（至少1个）
+    const aaScope: Expense['aaScope'] = fInclude
+      ? (fScopeMode === 'all' ? 'all' : fScopeIds)
+      : 'all';
+
     if (editExpense) {
       updatePlan({
         ...plan,
         expenses: plan.expenses.map(e => e.id === editExpense.id
-          ? { ...e, payerFamilyId: fPayer, item: fItem.trim(), amount, note: fNote.trim(), includeInAA: fInclude }
+          ? { ...e, payerFamilyId: fPayer, item: fItem.trim(), amount, note: fNote.trim(), includeInAA: fInclude, aaScope }
           : e),
       });
       toast('花费记录已更新');
@@ -117,6 +147,7 @@ export default function ExpensesTab() {
         amount,
         note: fNote.trim(),
         includeInAA: fInclude,
+        aaScope,
       };
       updatePlan({ ...plan, expenses: [...plan.expenses, newExp] });
       toast('花费已记录');
@@ -205,7 +236,9 @@ export default function ExpensesTab() {
               ¥{aaTotal.toFixed(2)}
             </div>
             <div style={{ fontSize: 11, opacity: 0.75, marginTop: 2 }}>
-              每方 ¥{plan.families.length > 0 ? (aaTotal / plan.families.length).toFixed(2) : '-'}
+              {hasPartialAA
+                ? '含部分分摊'
+                : `每人 ¥${plan.people.length > 0 ? (aaTotal / plan.people.length).toFixed(2) : '-'}`}
             </div>
           </div>
         </div>
@@ -245,6 +278,7 @@ export default function ExpensesTab() {
                   <ExpenseRow
                     key={e.id}
                     expense={e}
+                    families={plan.families}
                     onEdit={() => openEdit(e)}
                     onDelete={() => deleteExpense(e.id)}
                     onToggleAA={() => toggleAA(e.id)}
@@ -262,6 +296,7 @@ export default function ExpensesTab() {
                 <ExpenseRow
                   key={e.id}
                   expense={e}
+                  families={plan.families}
                   onEdit={() => openEdit(e)}
                   onDelete={() => deleteExpense(e.id)}
                   onToggleAA={() => toggleAA(e.id)}
@@ -353,7 +388,10 @@ export default function ExpensesTab() {
             className="btn btn-primary"
             style={{ width: '100%' }}
             onClick={saveExpense}
-            disabled={!fItem.trim() || !fPayer || !fAmount || parseFloat(fAmount) <= 0}
+            disabled={
+            !fItem.trim() || !fPayer || !fAmount || parseFloat(fAmount) <= 0 ||
+            (fInclude && fScopeMode === 'partial' && fScopeIds.length === 0)
+          }
           >
             {editExpense ? '保存' : '记录花费'}
           </button>
@@ -410,6 +448,66 @@ export default function ExpensesTab() {
             onClick={() => setFInclude(!fInclude)}
           />
         </div>
+
+        {/* 分摊范围选择 — 仅在计入AA时显示 */}
+        {fInclude && plan.families.length > 1 && (
+          <div style={{ marginTop: 14 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>分摊范围</div>
+            {/* 全员 / 指定范围 切换 */}
+            <div className="segment-control" style={{ marginBottom: 10 }}>
+              <button
+                className={`segment-btn${fScopeMode === 'all' ? ' active' : ''}`}
+                onClick={() => { setFScopeMode('all'); setFScopeIds([]); }}
+              >
+                👥 全员
+              </button>
+              <button
+                className={`segment-btn${fScopeMode === 'partial' ? ' active' : ''}`}
+                onClick={() => {
+                  setFScopeMode('partial');
+                  // 默认全选
+                  if (fScopeIds.length === 0) setFScopeIds(plan.families.map(f => f.id));
+                }}
+              >
+                🎯 指定范围
+              </button>
+            </div>
+
+            {/* 指定范围时显示家庭勾选列表 */}
+            {fScopeMode === 'partial' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {plan.families.map(f => {
+                  const checked = fScopeIds.includes(f.id);
+                  return (
+                    <div
+                      key={f.id}
+                      onClick={() => toggleScopeId(f.id)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '9px 12px',
+                        borderRadius: 'var(--radius-xs)',
+                        border: `1.5px solid ${checked ? 'var(--primary)' : 'var(--border)'}`,
+                        background: checked ? 'var(--primary-dim)' : 'var(--bg)',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      <div className={`checkbox-custom${checked ? ' checked' : ''}`}>
+                        {checked && '✓'}
+                      </div>
+                      <span style={{ fontSize: 14, fontWeight: checked ? 600 : 400 }}>{f.name}</span>
+                    </div>
+                  );
+                })}
+                {fScopeIds.length === 0 && (
+                  <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 2 }}>
+                    ⚠️ 请至少选择一方
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </Modal>
 
     </div>
@@ -418,12 +516,32 @@ export default function ExpensesTab() {
 
 interface RowProps {
   expense: Expense;
+  families: import('../../types').Family[];
   onEdit: () => void;
   onDelete: () => void;
   onToggleAA: () => void;
 }
 
-function ExpenseRow({ expense: e, onEdit, onDelete, onToggleAA }: RowProps) {
+function ExpenseRow({ expense: e, families, onEdit, onDelete, onToggleAA }: RowProps) {
+  // 分摊范围标签
+  const scopeTag = (() => {
+    if (!e.includeInAA) return null;
+    const scope = e.aaScope;
+    if (!scope || scope === 'all') {
+      return <span className="tag tag-orange">全员AA</span>;
+    }
+    const ids = scope as string[];
+    const names = ids
+      .map(id => families.find(f => f.id === id)?.name ?? '')
+      .filter(Boolean);
+    if (names.length === 0) return <span className="tag tag-orange">全员AA</span>;
+    return (
+      <span className="tag tag-green" title={names.join('、')}>
+        部分AA · {names.length}方
+      </span>
+    );
+  })();
+
   return (
     <div style={{
       background: 'var(--card)',
@@ -442,11 +560,8 @@ function ExpenseRow({ expense: e, onEdit, onDelete, onToggleAA }: RowProps) {
             <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{e.note}</span>
           )}
         </div>
-        <div style={{ marginTop: 4, display: 'flex', gap: 5, alignItems: 'center' }}>
-          {e.includeInAA
-            ? <span className="tag tag-orange">AA</span>
-            : <span className="tag tag-gray">不AA</span>
-          }
+        <div style={{ marginTop: 4, display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap' }}>
+          {e.includeInAA ? scopeTag : <span className="tag tag-gray">不AA</span>}
         </div>
       </div>
       <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--primary)', flexShrink: 0 }}>

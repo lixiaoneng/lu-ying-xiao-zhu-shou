@@ -1,15 +1,8 @@
 import { useApp } from '../../App';
-import { calculateSettlement } from '../../types';
-import type { AAMode } from '../../types';
+import { calculateSettlement, expenseIncludesFamily } from '../../types';
 
 export default function SettlementTab() {
-  const { plan, updatePlan } = useApp();
-
-  const aaMode: AAMode = plan.aaMode ?? 'family';
-
-  function setMode(mode: AAMode) {
-    updatePlan({ ...plan, aaMode: mode });
-  }
+  const { plan } = useApp();
 
   if (plan.families.length === 0) {
     return (
@@ -41,39 +34,17 @@ export default function SettlementTab() {
 
   const s = calculateSettlement(plan);
 
-  const modeLabel = aaMode === 'person'
-    ? `每人 ¥${s.perUnit.toFixed(2)}（共 ${s.totalUnits} 人）`
-    : `每方 ¥${s.perUnit.toFixed(2)}（共 ${s.totalUnits} 个结算方）`;
+  // 是否存在部分AA费用
+  const hasPartialAA = plan.expenses.some(
+    e => e.includeInAA && e.aaScope && e.aaScope !== 'all'
+  );
+
+  const modeLabel = hasPartialAA
+    ? '含部分分摊，见下方各方明细'
+    : `每人 ¥${s.perUnit.toFixed(2)}（共 ${s.totalUnits} 人）`;
 
   return (
     <div style={{ padding: '14px 14px 0' }}>
-
-      {/* Mode toggle */}
-      <div className="segment-control" style={{ marginBottom: 14 }}>
-        <button
-          className={`segment-btn${aaMode === 'family' ? ' active' : ''}`}
-          onClick={() => setMode('family')}
-        >
-          🏠 按家庭均摊
-        </button>
-        <button
-          className={`segment-btn${aaMode === 'person' ? ' active' : ''}`}
-          onClick={() => setMode('person')}
-        >
-          👤 按人头均摊
-        </button>
-      </div>
-
-      {/* Mode hint */}
-      {aaMode === 'person' && plan.people.length === 0 && (
-        <div style={{
-          background: 'var(--red-dim)', border: '1px solid #F5BDB8',
-          borderRadius: 'var(--radius-xs)', padding: '10px 12px',
-          fontSize: 13, color: 'var(--red)', marginBottom: 12,
-        }}>
-          ⚠️ 请先在「概况」页添加参与人员，才能按人头计算
-        </div>
-      )}
 
       {/* Total banner */}
       <div style={{
@@ -125,7 +96,7 @@ export default function SettlementTab() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div>
                   <span style={{ fontWeight: 700, fontSize: 15 }}>{fb.familyName}</span>
-                  {aaMode === 'person' && (
+                  {fb.memberCount > 0 && (
                     <span style={{
                       marginLeft: 8, fontSize: 12,
                       color: 'var(--text-muted)',
@@ -146,7 +117,7 @@ export default function SettlementTab() {
                 {[
                   { label: '已垫付', value: `¥${fb.paid.toFixed(2)}`, color: 'var(--text)' },
                   {
-                    label: aaMode === 'person' ? `应摊(×${fb.memberCount})` : '应摊',
+                    label: (!hasPartialAA && fb.memberCount > 0) ? `应摊(×${fb.memberCount}人)` : '应摊',
                     value: `¥${fb.share.toFixed(2)}`,
                     color: 'var(--text-muted)',
                   },
@@ -169,17 +140,35 @@ export default function SettlementTab() {
               <div style={{ marginTop: 10 }}>
                 {plan.expenses
                   .filter(e => e.payerFamilyId === fb.familyId && e.includeInAA)
-                  .map(e => (
-                    <div key={e.id} style={{
-                      display: 'flex', justifyContent: 'space-between',
-                      fontSize: 13, color: 'var(--text-muted)',
-                      padding: '3px 0',
-                      borderTop: '1px solid var(--bg-warm)',
-                    }}>
-                      <span>{e.item}{e.note ? ` (${e.note})` : ''}</span>
-                      <span style={{ color: 'var(--text)' }}>¥{e.amount.toFixed(2)}</span>
-                    </div>
-                  ))
+                  .map(e => {
+                    const isPartial = e.aaScope && e.aaScope !== 'all';
+                    const scopeCount = isPartial ? (e.aaScope as string[]).length : null;
+                    return (
+                      <div key={e.id} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        fontSize: 13, color: 'var(--text-muted)',
+                        padding: '4px 0',
+                        borderTop: '1px solid var(--bg-warm)',
+                        gap: 6,
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {e.item}{e.note ? ` (${e.note})` : ''}
+                          </span>
+                          {isPartial && (
+                            <span style={{
+                              fontSize: 10, padding: '1px 5px', borderRadius: 8, flexShrink: 0,
+                              background: 'rgba(106,155,88,0.12)', color: '#5A8A48',
+                              border: '1px solid rgba(106,155,88,0.2)',
+                            }}>
+                              {expenseIncludesFamily(e, fb.familyId) ? `${scopeCount}方分摊` : '不参与'}
+                            </span>
+                          )}
+                        </div>
+                        <span style={{ color: 'var(--text)', flexShrink: 0 }}>¥{e.amount.toFixed(2)}</span>
+                      </div>
+                    );
+                  })
                 }
               </div>
             </div>
@@ -243,7 +232,7 @@ export default function SettlementTab() {
       )}
 
       <div style={{ fontSize: 12, color: 'var(--text-light)', textAlign: 'center', marginBottom: 16 }}>
-        转账方案按结算主体（家庭/个人）汇总，与 AA 方式无关
+        按实际参与人数均摊，转账结果按家庭汇总展示
       </div>
     </div>
   );

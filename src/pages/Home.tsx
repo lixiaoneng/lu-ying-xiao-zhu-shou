@@ -192,18 +192,93 @@ export default function Home({ onOpenPlan }: Props) {
     <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
       {/* Hero */}
       <div style={{
-        background: 'linear-gradient(160deg, #C8651A 0%, #A84E10 60%, #7A3A08 100%)',
-        padding: '52px 24px 36px', position: 'relative', overflow: 'hidden',
+        background: 'linear-gradient(160deg, #E8783C 0%, #C85616 38%, #D07840 70%, #E0A040 100%)',
+        padding: '22px 20px 44px', position: 'relative', overflow: 'hidden',
       }}>
-        <div style={{ position: 'absolute', top: -40, right: -40, width: 180, height: 180, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
-        <div style={{ position: 'absolute', bottom: -20, left: -20, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ fontSize: 42, marginBottom: 8 }}>⛺</div>
-          <h1 style={{ fontSize: 30, color: 'white', letterSpacing: '0.04em', textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+        {/* 日落光晕 — 右上，主光源 */}
+        <div style={{
+          position: 'absolute', top: -60, right: -50,
+          width: 240, height: 240, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(255,215,110,0.22) 0%, transparent 60%)',
+          pointerEvents: 'none',
+        }} />
+        {/* 左侧柔和环境光 */}
+        <div style={{
+          position: 'absolute', top: -20, left: -40,
+          width: 160, height: 160, borderRadius: '50%',
+          background: 'rgba(255,235,175,0.07)',
+          pointerEvents: 'none',
+        }} />
+
+        {/* 云端 badge — 右上角毛玻璃 */}
+        {cloudEnabled && (
+          <div style={{
+            position: 'absolute', top: 14, right: 14, zIndex: 3,
+            display: 'flex', alignItems: 'center', gap: 5,
+            background: 'rgba(255,255,255,0.13)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255,255,255,0.18)',
+            borderRadius: 20, padding: '4px 10px 4px 8px',
+            fontSize: 11, color: 'rgba(255,255,255,0.88)',
+            fontWeight: 500, letterSpacing: '0.02em',
+            pointerEvents: 'none',
+          }}>
+            <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#A8D898', flexShrink: 0 }} />
+            云端多人协作开启
+          </div>
+        )}
+
+        {/* 月牙 */}
+        <div style={{ position: 'absolute', top: 30, right: 64, pointerEvents: 'none' }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: '50%',
+            background: 'rgba(255,242,160,0.30)',
+            boxShadow: '0 0 20px rgba(255,220,70,0.18)',
+          }} />
+          <div style={{
+            position: 'absolute', top: -3, right: -5,
+            width: 21, height: 21, borderRadius: '50%',
+            background: '#C06020',
+          }} />
+        </div>
+
+        {/* 星点 — 4颗，克制 */}
+        {([{ t: 14, r: 108 }, { t: 40, r: 140 }, { t: 9, r: 168 }, { t: 26, r: 202 }] as {t:number,r:number}[]).map((s, i) => (
+          <div key={i} style={{
+            position: 'absolute', top: s.t, right: s.r,
+            width: 2, height: 2, borderRadius: '50%',
+            background: `rgba(255,252,230,${0.30 + (i % 2) * 0.12})`,
+            pointerEvents: 'none',
+          }} />
+        ))}
+
+        {/* 草地轮廓 — 松针绿，极淡，只做大地感 */}
+        <svg viewBox="0 0 400 38" preserveAspectRatio="none"
+          style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: 38, pointerEvents: 'none' }}>
+          {/* 后景：平缓草坡 */}
+          <path d="M 0 38 L 0 26 Q 60 16 130 22 Q 200 28 270 18 Q 330 10 400 20 L 400 38 Z"
+            fill="rgba(100, 160, 75, 0.11)" />
+          {/* 前景：微起伏草地边缘 */}
+          <path d="M 0 38 L 0 32 Q 80 26 160 30 Q 240 34 320 28 Q 370 24 400 30 L 400 38 Z"
+            fill="rgba(110, 170, 80, 0.13)" />
+        </svg>
+
+        {/* 文字内容 */}
+        <div style={{ position: 'relative', zIndex: 2 }}>
+          <div style={{ fontSize: 42, marginBottom: 6, filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.18))' }}>⛺</div>
+          <h1 style={{
+            fontSize: 24, color: 'white', margin: 0,
+            letterSpacing: '0.04em', lineHeight: 1.2,
+            textShadow: '0 2px 10px rgba(0,0,0,0.20)',
+          }}>
             露营小助手
           </h1>
-          <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 14, marginTop: 6 }}>
-            告别腾讯文档，轻松规划露营每件事
+          <p style={{
+            color: 'rgba(255,255,255,0.70)', fontSize: 12.5,
+            marginTop: 7, lineHeight: 1.7, letterSpacing: '0.10em',
+          }}>
+            有组织地松弛一下
           </p>
         </div>
       </div>
@@ -212,7 +287,7 @@ export default function Home({ onOpenPlan }: Props) {
       <div style={{ flex: 1, padding: '20px 16px 32px' }}>
 
         {/* Action buttons */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: cloudEnabled ? 10 : 24 }}>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
           <button className="btn btn-primary" onClick={() => setShowNew(true)} style={{ flex: 1, fontSize: 15, padding: '14px 0' }}>
             ＋ 新建露营计划
           </button>
@@ -226,18 +301,6 @@ export default function Home({ onOpenPlan }: Props) {
           </button>
           <input ref={fileRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
         </div>
-
-        {/* Cloud status */}
-        {cloudEnabled && (
-          <div style={{
-            fontSize: 12, color: 'var(--green)', background: 'var(--green-dim)',
-            border: '1px solid var(--green-border)',
-            borderRadius: 'var(--radius-xs)', padding: '6px 12px',
-            marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6,
-          }}>
-            ☁️ 已连接 Supabase，支持多人协作
-          </div>
-        )}
 
         {/* Plan list */}
         {plans.length === 0 ? (
@@ -255,7 +318,8 @@ export default function Home({ onOpenPlan }: Props) {
           </div>
         ) : (
           <>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', marginBottom: 10 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#6A9B58', flexShrink: 0, display: 'inline-block' }} />
               我的计划
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -263,23 +327,68 @@ export default function Home({ onOpenPlan }: Props) {
                 <div
                   key={p.id}
                   className="card"
-                  style={{ cursor: 'pointer', animation: `slideUp 0.28s ease ${i * 0.05}s both`, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}
+                  style={{
+                    cursor: 'pointer',
+                    animation: `slideUp 0.28s ease ${i * 0.05}s both`,
+                    padding: '16px 16px',
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    transition: 'box-shadow 0.2s ease, transform 0.15s ease',
+                  }}
                   onClick={() => onOpenPlan(p.id)}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 20px rgba(90,140,72,0.14), 0 2px 8px rgba(200,101,26,0.08)';
+                    (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLDivElement).style.boxShadow = '';
+                    (e.currentTarget as HTMLDivElement).style.transform = '';
+                  }}
                 >
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--primary-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>⛺</div>
+                  {/* Icon */}
+                  <div style={{
+                    width: 46, height: 46, borderRadius: 13,
+                    background: 'linear-gradient(145deg, rgba(106,155,88,0.12) 0%, var(--primary-dim) 60%, rgba(200,101,26,0.10) 100%)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 22, flexShrink: 0,
+                    boxShadow: '0 2px 8px rgba(106,155,88,0.12)',
+                  }}>⛺</div>
+
+                  {/* Info */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 2 }}>{p.name}</div>
-                    <div style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      {p.date && <span>📅 {formatDate(p.date)}</span>}
-                      {p.location && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📍 {p.location}</span>}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                      <span style={{ fontWeight: 700, fontSize: 15 }}>{p.name}</span>
+                      {p.roomCode && (
+                        <span style={{
+                          fontSize: 10, color: '#4A7A5A',
+                          background: 'rgba(74,122,90,0.1)',
+                          border: '1px solid rgba(74,122,90,0.2)',
+                          borderRadius: 8, padding: '1px 6px', lineHeight: 1.6,
+                        }}>☁️ 云端</span>
+                      )}
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--text-light)', marginTop: 2 }}>
-                      {p.families.length}个家庭 · {p.people.length}人
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {p.date && <span>📅 {formatDate(p.date)}</span>}
+                      {p.location && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>📍 {p.location}</span>}
+                    </div>
+                    <div style={{ fontSize: 11, marginTop: 3, display: 'flex', gap: 6, alignItems: 'center' }}>
+                      {p.people.length > 0 ? (
+                        <>
+                          <span style={{ color: '#6A9B58', fontWeight: 600 }}>{p.people.length} 人</span>
+                          <span style={{ color: 'var(--border)' }}>·</span>
+                          <span style={{ color: '#6A9B58', fontWeight: 600 }}>{p.supplies.length} 项物资</span>
+                        </>
+                      ) : (
+                        <span style={{ color: 'var(--text-light)' }}>还没有参与者</span>
+                      )}
                     </div>
                   </div>
-                  <button className="btn-icon" onClick={e => { e.stopPropagation(); setDuplicateSource(p); }} title="复制计划">📋</button>
-                  <button className="btn-icon" onClick={e => { e.stopPropagation(); exportPlanAsJson(p); }} title="导出">📤</button>
-                  <button className="btn-icon" style={{ color: 'var(--red)' }} onClick={e => { e.stopPropagation(); setToDelete(p.id); }} title="删除">🗑️</button>
+
+                  {/* Actions */}
+                  <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                    <button className="btn-icon" onClick={e => { e.stopPropagation(); setDuplicateSource(p); }} title="复制计划">📋</button>
+                    <button className="btn-icon" onClick={e => { e.stopPropagation(); exportPlanAsJson(p); }} title="导出">📤</button>
+                    <button className="btn-icon" style={{ color: 'var(--red)' }} onClick={e => { e.stopPropagation(); setToDelete(p.id); }} title="删除">🗑️</button>
+                  </div>
                 </div>
               ))}
             </div>
