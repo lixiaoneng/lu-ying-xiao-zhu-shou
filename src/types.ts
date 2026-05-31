@@ -50,6 +50,8 @@ export interface Expense {
   amount: number;
   note: string;
   includeInAA: boolean;
+  // 分摊范围：undefined/'all' = 全员（默认）；string[] = 指定 family id 列表
+  aaScope?: 'all' | string[];
 }
 
 export interface MenuItem {
@@ -102,54 +104,74 @@ export interface Settlement {
   transactions: Transaction[];
 }
 
+// 判断某笔费用的分摊范围是否包含某 family
+export function expenseIncludesFamily(expense: Expense, familyId: string): boolean {
+  const scope = expense.aaScope;
+  if (!scope || scope === 'all') return true;
+  return (scope as string[]).includes(familyId);
+}
+
 export function calculateSettlement(plan: CampingPlan): Settlement {
   const { families, people, expenses, aaMode = 'family' } = plan;
 
   const aaExpenses = expenses.filter(e => e.includeInAA);
   const totalAmount = aaExpenses.reduce((sum, e) => sum + e.amount, 0);
 
-  // paid per family
+  // 每方的人数（按人头模式用）
+  const memberCountMap: Record<string, number> = {};
+  families.forEach(f => {
+    memberCountMap[f.id] = people.filter(p => p.familyId === f.id).length;
+  });
+
+  // 逐笔费用分配：paid 和 share 分开累计
   const paidByFamily: Record<string, number> = {};
-  families.forEach(f => { paidByFamily[f.id] = 0; });
+  const shareByFamily: Record<string, number> = {};
+  families.forEach(f => { paidByFamily[f.id] = 0; shareByFamily[f.id] = 0; });
+
   aaExpenses.forEach(e => {
+    // 累计垫付
     if (e.payerFamilyId in paidByFamily) {
       paidByFamily[e.payerFamilyId] += e.amount;
     }
+
+    // 计算本笔费用参与分摊的家庭
+    const scopeFamilies = families.filter(f => expenseIncludesFamily(e, f.id));
+    if (scopeFamilies.length === 0) return;
+
+    // 按 aaMode 计算本笔费用的分摊单位数（人数或家庭数）
+    let totalUnitsForExpense: number;
+    if (aaMode === 'person') {
+      totalUnitsForExpense = scopeFamilies.reduce((sum, f) => sum + (memberCountMap[f.id] ?? 0), 0);
+    } else {
+      totalUnitsForExpense = scopeFamilies.length;
+    }
+    if (totalUnitsForExpense === 0) return;
+
+    // 为每个参与家庭累加应摊金额
+    scopeFamilies.forEach(f => {
+      const units = aaMode === 'person' ? (memberCountMap[f.id] ?? 0) : 1;
+      shareByFamily[f.id] = (shareByFamily[f.id] ?? 0) + (e.amount * units) / totalUnitsForExpense;
+    });
   });
 
-  // share per family depends on mode
-  let perUnit: number;
-  let totalUnits: number;
-  const familyShareMap: Record<string, number> = {};
-
-  if (aaMode === 'person') {
-    const totalPeople = people.length;
-    totalUnits = totalPeople;
-    perUnit = totalPeople > 0 ? totalAmount / totalPeople : 0;
-    families.forEach(f => {
-      const count = people.filter(p => p.familyId === f.id).length;
-      familyShareMap[f.id] = count * perUnit;
-    });
-  } else {
-    totalUnits = families.length;
-    perUnit = families.length > 0 ? totalAmount / families.length : 0;
-    families.forEach(f => { familyShareMap[f.id] = perUnit; });
-  }
-
   const familyBalances: FamilyBalance[] = families.map(f => {
-    const share = familyShareMap[f.id] ?? 0;
+    const share = shareByFamily[f.id] ?? 0;
     const paid = paidByFamily[f.id] ?? 0;
     return {
       familyId: f.id,
       familyName: f.name,
-      memberCount: people.filter(p => p.familyId === f.id).length,
+      memberCount: memberCountMap[f.id] ?? 0,
       paid,
       share,
       balance: paid - share,
     };
   });
 
-  // minimum transactions
+  // perUnit / totalUnits 保留为全员全额的参考值（用于 UI 展示）
+  const totalUnits = aaMode === 'person' ? people.length : families.length;
+  const perUnit = totalUnits > 0 ? totalAmount / totalUnits : 0;
+
+  // 最小化转账
   const creditors = familyBalances
     .filter(b => b.balance > 0.01)
     .map(b => ({ ...b }))

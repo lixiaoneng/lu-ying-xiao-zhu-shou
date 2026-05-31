@@ -1,5 +1,5 @@
 import { useApp } from '../../App';
-import { calculateSettlement } from '../../types';
+import { calculateSettlement, expenseIncludesFamily } from '../../types';
 import type { AAMode } from '../../types';
 
 export default function SettlementTab() {
@@ -169,17 +169,35 @@ export default function SettlementTab() {
               <div style={{ marginTop: 10 }}>
                 {plan.expenses
                   .filter(e => e.payerFamilyId === fb.familyId && e.includeInAA)
-                  .map(e => (
-                    <div key={e.id} style={{
-                      display: 'flex', justifyContent: 'space-between',
-                      fontSize: 13, color: 'var(--text-muted)',
-                      padding: '3px 0',
-                      borderTop: '1px solid var(--bg-warm)',
-                    }}>
-                      <span>{e.item}{e.note ? ` (${e.note})` : ''}</span>
-                      <span style={{ color: 'var(--text)' }}>¥{e.amount.toFixed(2)}</span>
-                    </div>
-                  ))
+                  .map(e => {
+                    const isPartial = e.aaScope && e.aaScope !== 'all';
+                    const scopeCount = isPartial ? (e.aaScope as string[]).length : null;
+                    return (
+                      <div key={e.id} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        fontSize: 13, color: 'var(--text-muted)',
+                        padding: '4px 0',
+                        borderTop: '1px solid var(--bg-warm)',
+                        gap: 6,
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {e.item}{e.note ? ` (${e.note})` : ''}
+                          </span>
+                          {isPartial && (
+                            <span style={{
+                              fontSize: 10, padding: '1px 5px', borderRadius: 8, flexShrink: 0,
+                              background: 'rgba(106,155,88,0.12)', color: '#5A8A48',
+                              border: '1px solid rgba(106,155,88,0.2)',
+                            }}>
+                              {expenseIncludesFamily(e, fb.familyId) ? `${scopeCount}方分摊` : '不参与'}
+                            </span>
+                          )}
+                        </div>
+                        <span style={{ color: 'var(--text)', flexShrink: 0 }}>¥{e.amount.toFixed(2)}</span>
+                      </div>
+                    );
+                  })
                 }
               </div>
             </div>

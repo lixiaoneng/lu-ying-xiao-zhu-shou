@@ -30,7 +30,8 @@ export function migratePlan(p: CampingPlan): CampingPlan {
     families: (p.families ?? []).map(f => ({ isSolo: false, ...f })),
     // Ensure every supply has needsAA (old gear items may lack it → default false)
     supplies: (p.supplies ?? []).map(s => ({ ...s, needsAA: s.needsAA ?? false })),
-    expenses: p.expenses ?? [],
+    // aaScope: undefined/'all' = 全员（向下兼容旧数据，无此字段时自动视为全员）
+    expenses: (p.expenses ?? []).map(e => ({ ...e, aaScope: e.aaScope ?? 'all' })),
   };
 }
 
