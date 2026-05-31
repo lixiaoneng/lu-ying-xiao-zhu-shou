@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { CampingPlan } from '../types';
 import {
   loadPlans, loadPlan, savePlan, deletePlan, generateId,
@@ -36,8 +36,19 @@ export default function Home({ onOpenPlan }: Props) {
     cloudPlan: CampingPlan; roomCode: string;
   } | null>(null);
 
+  // ⋯ 菜单状态
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+
   const fileRef = useRef<HTMLInputElement>(null);
   const cloudEnabled = isSupabaseConfigured();
+
+  // 点击卡片外部时关闭 ⋯ 菜单
+  useEffect(() => {
+    if (!menuOpenId) return;
+    const close = () => setMenuOpenId(null);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [menuOpenId]);
 
   function refresh() { setPlans(loadPlans()); }
 
@@ -318,11 +329,20 @@ export default function Home({ onOpenPlan }: Props) {
           </div>
         ) : (
           <>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#6A9B58', flexShrink: 0, display: 'inline-block' }} />
-              我的计划
+            {/* Section header */}
+            <div style={{
+              fontSize: 11, fontWeight: 700, color: 'var(--text-muted)',
+              letterSpacing: '0.10em', textTransform: 'uppercase',
+              marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              <span style={{
+                width: 5, height: 5, borderRadius: '50%',
+                background: '#6A9B58', flexShrink: 0, display: 'inline-block',
+              }} />
+              我的计划 · {plans.length}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {plans.map((p, i) => (
                 <div
                   key={p.id}
@@ -330,13 +350,13 @@ export default function Home({ onOpenPlan }: Props) {
                   style={{
                     cursor: 'pointer',
                     animation: `slideUp 0.28s ease ${i * 0.05}s both`,
-                    padding: '16px 16px',
-                    display: 'flex', alignItems: 'center', gap: 12,
-                    transition: 'box-shadow 0.2s ease, transform 0.15s ease',
+                    padding: '13px 14px 12px',
+                    position: 'relative',
+                    transition: 'box-shadow 0.18s ease, transform 0.15s ease',
                   }}
                   onClick={() => onOpenPlan(p.id)}
                   onMouseEnter={e => {
-                    (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 20px rgba(90,140,72,0.14), 0 2px 8px rgba(200,101,26,0.08)';
+                    (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 16px rgba(90,140,72,0.12), 0 1px 6px rgba(200,101,26,0.07)';
                     (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-1px)';
                   }}
                   onMouseLeave={e => {
@@ -344,50 +364,134 @@ export default function Home({ onOpenPlan }: Props) {
                     (e.currentTarget as HTMLDivElement).style.transform = '';
                   }}
                 >
-                  {/* Icon */}
-                  <div style={{
-                    width: 46, height: 46, borderRadius: 13,
-                    background: 'linear-gradient(145deg, rgba(106,155,88,0.12) 0%, var(--primary-dim) 60%, rgba(200,101,26,0.10) 100%)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 22, flexShrink: 0,
-                    boxShadow: '0 2px 8px rgba(106,155,88,0.12)',
-                  }}>⛺</div>
+                  {/* ── Row 1: 名称 + 云端 badge + ⋯ ── */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                    <span style={{
+                      fontWeight: 700, fontSize: 15, lineHeight: 1.3,
+                      flex: 1, minWidth: 0,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                      {p.name}
+                    </span>
+                    {p.roomCode && (
+                      <span style={{
+                        fontSize: 10, color: '#4A7A5A', flexShrink: 0,
+                        background: 'rgba(74,122,90,0.09)',
+                        border: '1px solid rgba(74,122,90,0.18)',
+                        borderRadius: 6, padding: '1px 6px', lineHeight: 1.7,
+                      }}>☁️ 云端</span>
+                    )}
 
-                  {/* Info */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                      <span style={{ fontWeight: 700, fontSize: 15 }}>{p.name}</span>
-                      {p.roomCode && (
-                        <span style={{
-                          fontSize: 10, color: '#4A7A5A',
-                          background: 'rgba(74,122,90,0.1)',
-                          border: '1px solid rgba(74,122,90,0.2)',
-                          borderRadius: 8, padding: '1px 6px', lineHeight: 1.6,
-                        }}>☁️ 云端</span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      {p.date && <span>📅 {formatDate(p.date)}</span>}
-                      {p.location && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>📍 {p.location}</span>}
-                    </div>
-                    <div style={{ fontSize: 11, marginTop: 3, display: 'flex', gap: 6, alignItems: 'center' }}>
-                      {p.people.length > 0 ? (
-                        <>
-                          <span style={{ color: '#6A9B58', fontWeight: 600 }}>{p.people.length} 人</span>
-                          <span style={{ color: 'var(--border)' }}>·</span>
-                          <span style={{ color: '#6A9B58', fontWeight: 600 }}>{p.supplies.length} 项物资</span>
-                        </>
-                      ) : (
-                        <span style={{ color: 'var(--text-light)' }}>还没有参与者</span>
-                      )}
-                    </div>
+                    {/* ⋯ 菜单按钮 */}
+                    <button
+                      onClick={e => {
+                        e.stopPropagation();
+                        setMenuOpenId(menuOpenId === p.id ? null : p.id);
+                      }}
+                      style={{
+                        flexShrink: 0, width: 28, height: 28,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        borderRadius: 8, border: 'none', background: 'none',
+                        cursor: 'pointer', color: 'var(--text-muted)',
+                        fontSize: 17, letterSpacing: '0.06em',
+                        transition: 'background 0.15s',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-warm)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                      title="更多操作"
+                    >
+                      •••
+                    </button>
+
+                    {/* 下拉菜单 */}
+                    {menuOpenId === p.id && (
+                      <div
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                          position: 'absolute', top: 38, right: 10, zIndex: 200,
+                          background: 'var(--card)',
+                          borderRadius: 12,
+                          boxShadow: '0 8px 28px rgba(0,0,0,0.13), 0 2px 8px rgba(0,0,0,0.07)',
+                          border: '1px solid rgba(0,0,0,0.07)',
+                          overflow: 'hidden',
+                          minWidth: 148,
+                        }}
+                      >
+                        {([
+                          { icon: '🔍', label: '查看详情', action: () => onOpenPlan(p.id) },
+                          { icon: '📋', label: '复制计划', action: () => setDuplicateSource(p) },
+                          { icon: '📤', label: '导出 JSON', action: () => exportPlanAsJson(p) },
+                        ] as { icon: string; label: string; action: () => void }[]).map((item, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => { item.action(); setMenuOpenId(null); }}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 10,
+                              width: '100%', textAlign: 'left',
+                              padding: '11px 14px', fontSize: 14,
+                              background: 'none', border: 'none',
+                              borderBottom: '1px solid var(--bg-warm)',
+                              color: 'var(--text)', cursor: 'pointer',
+                            }}
+                          >
+                            <span style={{ fontSize: 15 }}>{item.icon}</span>
+                            {item.label}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => { setToDelete(p.id); setMenuOpenId(null); }}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            width: '100%', textAlign: 'left',
+                            padding: '11px 14px', fontSize: 14,
+                            background: 'none', border: 'none',
+                            color: 'var(--red)', cursor: 'pointer',
+                          }}
+                        >
+                          <span style={{ fontSize: 15 }}>🗑️</span>
+                          删除
+                        </button>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Actions */}
-                  <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
-                    <button className="btn-icon" onClick={e => { e.stopPropagation(); setDuplicateSource(p); }} title="复制计划">📋</button>
-                    <button className="btn-icon" onClick={e => { e.stopPropagation(); exportPlanAsJson(p); }} title="导出">📤</button>
-                    <button className="btn-icon" style={{ color: 'var(--red)' }} onClick={e => { e.stopPropagation(); setToDelete(p.id); }} title="删除">🗑️</button>
+                  {/* ── Row 2: 日期 + 地点 ── */}
+                  {(p.date || p.location) && (
+                    <div style={{
+                      fontSize: 12, color: 'var(--text-muted)',
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      marginBottom: 5, overflow: 'hidden',
+                    }}>
+                      {p.date && (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
+                          📅 {formatDate(p.date)}
+                        </span>
+                      )}
+                      {p.date && p.location && (
+                        <span style={{ color: 'var(--border)', fontSize: 10 }}>|</span>
+                      )}
+                      {p.location && (
+                        <span style={{
+                          display: 'flex', alignItems: 'center', gap: 3,
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>
+                          📍 {p.location}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* ── Row 3: 人数 + 物资 ── */}
+                  <div style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {p.people.length > 0 ? (
+                      <>
+                        <span style={{ color: '#5E8F4A', fontWeight: 600 }}>👥 {p.people.length} 人</span>
+                        <span style={{ color: 'var(--border)' }}>·</span>
+                        <span style={{ color: '#5E8F4A', fontWeight: 600 }}>📦 {p.supplies.length} 项物资</span>
+                      </>
+                    ) : (
+                      <span style={{ color: 'var(--text-light)' }}>还没有参与者</span>
+                    )}
                   </div>
                 </div>
               ))}
