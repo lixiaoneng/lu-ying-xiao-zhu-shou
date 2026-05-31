@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import type { CampingPlan } from '../types';
 import {
   loadPlans, loadPlan, savePlan, deletePlan, generateId,
@@ -36,19 +36,11 @@ export default function Home({ onOpenPlan }: Props) {
     cloudPlan: CampingPlan; roomCode: string;
   } | null>(null);
 
-  // ⋯ 菜单状态
-  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  // ⋯ Action Sheet
+  const [actionSheetPlan, setActionSheetPlan] = useState<CampingPlan | null>(null);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const cloudEnabled = isSupabaseConfigured();
-
-  // 点击卡片外部时关闭 ⋯ 菜单
-  useEffect(() => {
-    if (!menuOpenId) return;
-    const close = () => setMenuOpenId(null);
-    document.addEventListener('click', close);
-    return () => document.removeEventListener('click', close);
-  }, [menuOpenId]);
 
   function refresh() { setPlans(loadPlans()); }
 
@@ -382,18 +374,14 @@ export default function Home({ onOpenPlan }: Props) {
                       }}>☁️ 云端</span>
                     )}
 
-                    {/* ⋯ 菜单按钮 */}
+                    {/* ⋯ 按钮 → 底部 Action Sheet */}
                     <button
-                      onClick={e => {
-                        e.stopPropagation();
-                        setMenuOpenId(menuOpenId === p.id ? null : p.id);
-                      }}
+                      onClick={e => { e.stopPropagation(); setActionSheetPlan(p); }}
                       style={{
                         flexShrink: 0, width: 28, height: 28,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         borderRadius: 8, border: 'none', background: 'none',
-                        cursor: 'pointer', color: 'var(--text-muted)',
-                        fontSize: 17, letterSpacing: '0.06em',
+                        cursor: 'pointer', color: 'var(--text-muted)', fontSize: 16,
                         transition: 'background 0.15s',
                       }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-warm)')}
@@ -402,57 +390,6 @@ export default function Home({ onOpenPlan }: Props) {
                     >
                       •••
                     </button>
-
-                    {/* 下拉菜单 */}
-                    {menuOpenId === p.id && (
-                      <div
-                        onClick={e => e.stopPropagation()}
-                        style={{
-                          position: 'absolute', top: 38, right: 10, zIndex: 200,
-                          background: 'var(--card)',
-                          borderRadius: 12,
-                          boxShadow: '0 8px 28px rgba(0,0,0,0.13), 0 2px 8px rgba(0,0,0,0.07)',
-                          border: '1px solid rgba(0,0,0,0.07)',
-                          overflow: 'hidden',
-                          minWidth: 148,
-                        }}
-                      >
-                        {([
-                          { icon: '🔍', label: '查看详情', action: () => onOpenPlan(p.id) },
-                          { icon: '📋', label: '复制计划', action: () => setDuplicateSource(p) },
-                          { icon: '📤', label: '导出 JSON', action: () => exportPlanAsJson(p) },
-                        ] as { icon: string; label: string; action: () => void }[]).map((item, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => { item.action(); setMenuOpenId(null); }}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: 10,
-                              width: '100%', textAlign: 'left',
-                              padding: '11px 14px', fontSize: 14,
-                              background: 'none', border: 'none',
-                              borderBottom: '1px solid var(--bg-warm)',
-                              color: 'var(--text)', cursor: 'pointer',
-                            }}
-                          >
-                            <span style={{ fontSize: 15 }}>{item.icon}</span>
-                            {item.label}
-                          </button>
-                        ))}
-                        <button
-                          onClick={() => { setToDelete(p.id); setMenuOpenId(null); }}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: 10,
-                            width: '100%', textAlign: 'left',
-                            padding: '11px 14px', fontSize: 14,
-                            background: 'none', border: 'none',
-                            color: 'var(--red)', cursor: 'pointer',
-                          }}
-                        >
-                          <span style={{ fontSize: 15 }}>🗑️</span>
-                          删除
-                        </button>
-                      </div>
-                    )}
                   </div>
 
                   {/* ── Row 2: 日期 + 地点 ── */}
@@ -668,6 +605,75 @@ export default function Home({ onOpenPlan }: Props) {
                 style={{ width: '100%' }}
                 onClick={() => setDuplicateSource(null)}
                 disabled={duplicating}
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Action Sheet ── */}
+      {actionSheetPlan && (
+        <div
+          onClick={() => setActionSheetPlan(null)}
+          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(44,26,14,0.45)', display: 'flex', alignItems: 'flex-end', animation: 'fadeIn 0.22s ease' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ width: '100%', maxWidth: 480, margin: '0 auto', padding: '0 10px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 10px)', animation: 'sheetIn 0.3s cubic-bezier(0.32,0.72,0,1)' }}
+          >
+            {/* 主操作组 */}
+            <div style={{ background: 'var(--card)', borderRadius: 16, overflow: 'hidden', marginBottom: 10 }}>
+              {/* 计划名称提示 */}
+              <div style={{
+                padding: '13px 16px 11px',
+                textAlign: 'center',
+                borderBottom: '1px solid var(--bg-warm)',
+              }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                  {actionSheetPlan.name}
+                </div>
+              </div>
+
+              {/* 查看详情 */}
+              <button
+                onClick={() => { onOpenPlan(actionSheetPlan.id); setActionSheetPlan(null); }}
+                style={{ display: 'block', width: '100%', padding: '16px', fontSize: 16, textAlign: 'center', background: 'none', border: 'none', borderBottom: '1px solid var(--bg-warm)', color: 'var(--text)', cursor: 'pointer', fontWeight: 500 }}
+              >
+                查看详情
+              </button>
+
+              {/* 复制计划 */}
+              <button
+                onClick={() => { setDuplicateSource(actionSheetPlan); setActionSheetPlan(null); }}
+                style={{ display: 'block', width: '100%', padding: '16px', fontSize: 16, textAlign: 'center', background: 'none', border: 'none', borderBottom: '1px solid var(--bg-warm)', color: 'var(--text)', cursor: 'pointer', fontWeight: 500 }}
+              >
+                复制计划
+              </button>
+
+              {/* 导出 */}
+              <button
+                onClick={() => { exportPlanAsJson(actionSheetPlan); setActionSheetPlan(null); }}
+                style={{ display: 'block', width: '100%', padding: '16px', fontSize: 16, textAlign: 'center', background: 'none', border: 'none', borderBottom: '1px solid var(--bg-warm)', color: 'var(--text)', cursor: 'pointer', fontWeight: 500 }}
+              >
+                导出 JSON
+              </button>
+
+              {/* 删除（红色，二次确认） */}
+              <button
+                onClick={() => { setToDelete(actionSheetPlan.id); setActionSheetPlan(null); }}
+                style={{ display: 'block', width: '100%', padding: '16px', fontSize: 16, textAlign: 'center', background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontWeight: 500 }}
+              >
+                删除
+              </button>
+            </div>
+
+            {/* 取消 — 独立卡片 */}
+            <div style={{ background: 'var(--card)', borderRadius: 16, overflow: 'hidden' }}>
+              <button
+                onClick={() => setActionSheetPlan(null)}
+                style={{ display: 'block', width: '100%', padding: '16px', fontSize: 16, textAlign: 'center', background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', fontWeight: 600 }}
               >
                 取消
               </button>
