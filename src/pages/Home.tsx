@@ -192,27 +192,21 @@ export default function Home({ onOpenPlan }: Props) {
     <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
       {/* Hero */}
       <div style={{
-        background: 'linear-gradient(160deg, #E8783C 0%, #C85616 40%, #D4824C 72%, #E8A850 100%)',
-        padding: '48px 24px 72px', position: 'relative', overflow: 'hidden',
+        background: 'linear-gradient(160deg, #E8783C 0%, #C85616 38%, #D07840 70%, #E0A040 100%)',
+        padding: '22px 20px 44px', position: 'relative', overflow: 'hidden',
       }}>
         {/* 日落光晕 — 右上，主光源 */}
         <div style={{
-          position: 'absolute', top: -80, right: -60,
-          width: 320, height: 320, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(255,215,110,0.26) 0%, transparent 62%)',
+          position: 'absolute', top: -60, right: -50,
+          width: 240, height: 240, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(255,215,110,0.22) 0%, transparent 60%)',
           pointerEvents: 'none',
         }} />
         {/* 左侧柔和环境光 */}
         <div style={{
-          position: 'absolute', top: -30, left: -50,
-          width: 200, height: 200, borderRadius: '50%',
-          background: 'rgba(255,235,175,0.08)',
-          pointerEvents: 'none',
-        }} />
-        {/* 底部极淡松绿气息 — 只是空气感，不做颜色块 */}
-        <div style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0, height: 56,
-          background: 'linear-gradient(to top, rgba(155,200,155,0.10) 0%, transparent 100%)',
+          position: 'absolute', top: -20, left: -40,
+          width: 160, height: 160, borderRadius: '50%',
+          background: 'rgba(255,235,175,0.07)',
           pointerEvents: 'none',
         }} />
 
@@ -259,28 +253,30 @@ export default function Home({ onOpenPlan }: Props) {
           }} />
         ))}
 
-        {/* 地平线 — 仅一条极淡曲线，过渡自然 */}
-        <svg viewBox="0 0 400 44" preserveAspectRatio="none"
-          style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: 44, pointerEvents: 'none' }}>
-          <path d="M 0 44 L 0 30 Q 100 8 200 24 Q 300 38 400 22 L 400 44 Z"
-            fill="rgba(255,255,255,0.06)" />
-          <path d="M 0 44 L 0 38 Q 200 32 400 38 L 400 44 Z"
-            fill="rgba(255,255,255,0.05)" />
+        {/* 草地轮廓 — 松针绿，极淡，只做大地感 */}
+        <svg viewBox="0 0 400 38" preserveAspectRatio="none"
+          style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: 38, pointerEvents: 'none' }}>
+          {/* 后景：平缓草坡 */}
+          <path d="M 0 38 L 0 26 Q 60 16 130 22 Q 200 28 270 18 Q 330 10 400 20 L 400 38 Z"
+            fill="rgba(100, 160, 75, 0.11)" />
+          {/* 前景：微起伏草地边缘 */}
+          <path d="M 0 38 L 0 32 Q 80 26 160 30 Q 240 34 320 28 Q 370 24 400 30 L 400 38 Z"
+            fill="rgba(110, 170, 80, 0.13)" />
         </svg>
 
         {/* 文字内容 */}
         <div style={{ position: 'relative', zIndex: 2 }}>
-          <div style={{ fontSize: 50, marginBottom: 8, filter: 'drop-shadow(0 3px 10px rgba(0,0,0,0.20))' }}>⛺</div>
+          <div style={{ fontSize: 42, marginBottom: 6, filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.18))' }}>⛺</div>
           <h1 style={{
-            fontSize: 28, color: 'white', margin: 0,
+            fontSize: 24, color: 'white', margin: 0,
             letterSpacing: '0.04em', lineHeight: 1.2,
-            textShadow: '0 2px 12px rgba(0,0,0,0.22)',
+            textShadow: '0 2px 10px rgba(0,0,0,0.20)',
           }}>
             露营小助手
           </h1>
           <p style={{
-            color: 'rgba(255,255,255,0.72)', fontSize: 13.5,
-            marginTop: 10, lineHeight: 1.7, letterSpacing: '0.10em',
+            color: 'rgba(255,255,255,0.70)', fontSize: 12.5,
+            marginTop: 7, lineHeight: 1.7, letterSpacing: '0.10em',
           }}>
             有组织地松弛一下
           </p>
@@ -322,7 +318,8 @@ export default function Home({ onOpenPlan }: Props) {
           </div>
         ) : (
           <>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', marginBottom: 10 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#6A9B58', flexShrink: 0, display: 'inline-block' }} />
               我的计划
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -339,7 +336,7 @@ export default function Home({ onOpenPlan }: Props) {
                   }}
                   onClick={() => onOpenPlan(p.id)}
                   onMouseEnter={e => {
-                    (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 20px rgba(200,101,26,0.13)';
+                    (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 20px rgba(90,140,72,0.14), 0 2px 8px rgba(200,101,26,0.08)';
                     (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-1px)';
                   }}
                   onMouseLeave={e => {
@@ -350,10 +347,10 @@ export default function Home({ onOpenPlan }: Props) {
                   {/* Icon */}
                   <div style={{
                     width: 46, height: 46, borderRadius: 13,
-                    background: 'linear-gradient(135deg, var(--primary-dim) 0%, rgba(200,101,26,0.12) 100%)',
+                    background: 'linear-gradient(145deg, rgba(106,155,88,0.12) 0%, var(--primary-dim) 60%, rgba(200,101,26,0.10) 100%)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 22, flexShrink: 0,
-                    boxShadow: '0 2px 8px rgba(200,101,26,0.10)',
+                    boxShadow: '0 2px 8px rgba(106,155,88,0.12)',
                   }}>⛺</div>
 
                   {/* Info */}
@@ -373,10 +370,16 @@ export default function Home({ onOpenPlan }: Props) {
                       {p.date && <span>📅 {formatDate(p.date)}</span>}
                       {p.location && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>📍 {p.location}</span>}
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 3 }}>
-                      {p.people.length > 0
-                        ? `${p.people.length} 人参与 · ${p.supplies.length} 项物资`
-                        : '还没有参与者'}
+                    <div style={{ fontSize: 11, marginTop: 3, display: 'flex', gap: 6, alignItems: 'center' }}>
+                      {p.people.length > 0 ? (
+                        <>
+                          <span style={{ color: '#6A9B58', fontWeight: 600 }}>{p.people.length} 人</span>
+                          <span style={{ color: 'var(--border)' }}>·</span>
+                          <span style={{ color: '#6A9B58', fontWeight: 600 }}>{p.supplies.length} 项物资</span>
+                        </>
+                      ) : (
+                        <span style={{ color: 'var(--text-light)' }}>还没有参与者</span>
+                      )}
                     </div>
                   </div>
 
