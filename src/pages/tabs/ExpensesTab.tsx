@@ -67,6 +67,7 @@ export default function ExpensesTab() {
         amount: s.price!,
         note: '从物资同步',
         includeInAA: true,
+        aaScope: 'all' as const,
       }));
     if (toAdd.length === 0) { setShowSyncModal(false); return; }
     updatePlan({ ...plan, expenses: [...plan.expenses, ...toAdd] });
@@ -79,6 +80,11 @@ export default function ExpensesTab() {
     .reduce((s, e) => s + e.amount, 0);
 
   const total = plan.expenses.reduce((s, e) => s + e.amount, 0);
+
+  // 是否存在部分AA费用（有任意一笔 aaScope 不是全员）
+  const hasPartialAA = plan.expenses.some(
+    e => e.includeInAA && e.aaScope && e.aaScope !== 'all'
+  );
 
   function openAdd() {
     setEditExpense(null);
@@ -230,7 +236,9 @@ export default function ExpensesTab() {
               ¥{aaTotal.toFixed(2)}
             </div>
             <div style={{ fontSize: 11, opacity: 0.75, marginTop: 2 }}>
-              每方 ¥{plan.families.length > 0 ? (aaTotal / plan.families.length).toFixed(2) : '-'}
+              {hasPartialAA
+                ? '含部分分摊'
+                : `每方 ¥${plan.families.length > 0 ? (aaTotal / plan.families.length).toFixed(2) : '-'}`}
             </div>
           </div>
         </div>

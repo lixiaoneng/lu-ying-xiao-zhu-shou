@@ -41,9 +41,16 @@ export default function SettlementTab() {
 
   const s = calculateSettlement(plan);
 
-  const modeLabel = aaMode === 'person'
-    ? `每人 ¥${s.perUnit.toFixed(2)}（共 ${s.totalUnits} 人）`
-    : `每方 ¥${s.perUnit.toFixed(2)}（共 ${s.totalUnits} 个结算方）`;
+  // 是否存在部分AA费用
+  const hasPartialAA = plan.expenses.some(
+    e => e.includeInAA && e.aaScope && e.aaScope !== 'all'
+  );
+
+  const modeLabel = hasPartialAA
+    ? '含部分分摊，见下方各方明细'
+    : aaMode === 'person'
+      ? `每人 ¥${s.perUnit.toFixed(2)}（共 ${s.totalUnits} 人）`
+      : `每方 ¥${s.perUnit.toFixed(2)}（共 ${s.totalUnits} 个结算方）`;
 
   return (
     <div style={{ padding: '14px 14px 0' }}>
@@ -146,7 +153,7 @@ export default function SettlementTab() {
                 {[
                   { label: '已垫付', value: `¥${fb.paid.toFixed(2)}`, color: 'var(--text)' },
                   {
-                    label: aaMode === 'person' ? `应摊(×${fb.memberCount})` : '应摊',
+                    label: (aaMode === 'person' && !hasPartialAA) ? `应摊(×${fb.memberCount})` : '应摊',
                     value: `¥${fb.share.toFixed(2)}`,
                     color: 'var(--text-muted)',
                   },
