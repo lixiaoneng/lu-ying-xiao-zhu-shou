@@ -1,15 +1,8 @@
 import { useApp } from '../../App';
 import { calculateSettlement, expenseIncludesFamily } from '../../types';
-import type { AAMode } from '../../types';
 
 export default function SettlementTab() {
-  const { plan, updatePlan } = useApp();
-
-  const aaMode: AAMode = plan.aaMode ?? 'family';
-
-  function setMode(mode: AAMode) {
-    updatePlan({ ...plan, aaMode: mode });
-  }
+  const { plan } = useApp();
 
   if (plan.families.length === 0) {
     return (
@@ -48,39 +41,10 @@ export default function SettlementTab() {
 
   const modeLabel = hasPartialAA
     ? '含部分分摊，见下方各方明细'
-    : aaMode === 'person'
-      ? `每人 ¥${s.perUnit.toFixed(2)}（共 ${s.totalUnits} 人）`
-      : `每方 ¥${s.perUnit.toFixed(2)}（共 ${s.totalUnits} 个结算方）`;
+    : `每人 ¥${s.perUnit.toFixed(2)}（共 ${s.totalUnits} 人）`;
 
   return (
     <div style={{ padding: '14px 14px 0' }}>
-
-      {/* Mode toggle */}
-      <div className="segment-control" style={{ marginBottom: 14 }}>
-        <button
-          className={`segment-btn${aaMode === 'family' ? ' active' : ''}`}
-          onClick={() => setMode('family')}
-        >
-          🏠 按家庭均摊
-        </button>
-        <button
-          className={`segment-btn${aaMode === 'person' ? ' active' : ''}`}
-          onClick={() => setMode('person')}
-        >
-          👤 按人头均摊
-        </button>
-      </div>
-
-      {/* Mode hint */}
-      {aaMode === 'person' && plan.people.length === 0 && (
-        <div style={{
-          background: 'var(--red-dim)', border: '1px solid #F5BDB8',
-          borderRadius: 'var(--radius-xs)', padding: '10px 12px',
-          fontSize: 13, color: 'var(--red)', marginBottom: 12,
-        }}>
-          ⚠️ 请先在「概况」页添加参与人员，才能按人头计算
-        </div>
-      )}
 
       {/* Total banner */}
       <div style={{
@@ -132,7 +96,7 @@ export default function SettlementTab() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div>
                   <span style={{ fontWeight: 700, fontSize: 15 }}>{fb.familyName}</span>
-                  {aaMode === 'person' && (
+                  {fb.memberCount > 0 && (
                     <span style={{
                       marginLeft: 8, fontSize: 12,
                       color: 'var(--text-muted)',
@@ -153,7 +117,7 @@ export default function SettlementTab() {
                 {[
                   { label: '已垫付', value: `¥${fb.paid.toFixed(2)}`, color: 'var(--text)' },
                   {
-                    label: (aaMode === 'person' && !hasPartialAA) ? `应摊(×${fb.memberCount})` : '应摊',
+                    label: (!hasPartialAA && fb.memberCount > 0) ? `应摊(×${fb.memberCount}人)` : '应摊',
                     value: `¥${fb.share.toFixed(2)}`,
                     color: 'var(--text-muted)',
                   },
@@ -268,7 +232,7 @@ export default function SettlementTab() {
       )}
 
       <div style={{ fontSize: 12, color: 'var(--text-light)', textAlign: 'center', marginBottom: 16 }}>
-        转账方案按结算主体（家庭/个人）汇总，与 AA 方式无关
+        按实际参与人数均摊，转账结果按家庭汇总展示
       </div>
     </div>
   );

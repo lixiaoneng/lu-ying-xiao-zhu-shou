@@ -11,6 +11,7 @@ export interface Family {
 }
 
 export type SupplyType = 'personal' | 'food' | 'gear';
+// 'family' is kept as tombstone for backward-compat with stored data; AA always calculated per-person
 export type AAMode = 'family' | 'person';
 
 export const SUPPLY_TYPE_LABELS: Record<SupplyType, string> = {
@@ -98,8 +99,8 @@ export interface Transaction {
 export interface Settlement {
   totalAmount: number;
   aaMode: AAMode;
-  perUnit: number;       // 按家庭时=每家份额，按人头时=每人份额
-  totalUnits: number;    // 按家庭时=家庭数，按人头时=总人数
+  perUnit: number;       // 每人份额（全员AA时有意义；部分AA时仅供参考）
+  totalUnits: number;    // 参与人数
   familyBalances: FamilyBalance[];
   transactions: Transaction[];
 }
@@ -112,18 +113,20 @@ export function expenseIncludesFamily(expense: Expense, familyId: string): boole
 }
 
 export function calculateSettlement(plan: CampingPlan): Settlement {
-  const { families, people, expenses, aaMode = 'family' } = plan;
+  const { families, people, expenses } = plan;
 
   const aaExpenses = expenses.filter(e => e.includeInAA);
   const totalAmount = aaExpenses.reduce((sum, e) => sum + e.amount, 0);
 
-  // 每方的人数（按人头模式用）
+  // 每家人数。fallback = 1：兼容旧计划（只填了家庭、未填人员），
+  // 保证这类旧数据在纯按人头模式下仍能正常分摊。
   const memberCountMap: Record<string, number> = {};
   families.forEach(f => {
-    memberCountMap[f.id] = people.filter(p => p.familyId === f.id).length;
+    const actual = people.filter(p => p.familyId === f.id).length;
+    memberCountMap[f.id] = actual > 0 ? actual : 1;
   });
 
-  // 逐笔费用分配：paid 和 share 分开累计
+  // 逐笔费用分配
   const paidByFamily: Record<string, number> = {};
   const shareByFamily: Record<string, number> = {};
   families.forEach(f => { paidByFamily[f.id] = 0; shareByFamily[f.id] = 0; });
@@ -134,23 +137,20 @@ export function calculateSettlement(plan: CampingPlan): Settlement {
       paidByFamily[e.payerFamilyId] += e.amount;
     }
 
-    // 计算本笔费用参与分摊的家庭
+    // 参与本笔分摊的家庭（由 aaScope 决定）
     const scopeFamilies = families.filter(f => expenseIncludesFamily(e, f.id));
     if (scopeFamilies.length === 0) return;
 
-    // 按 aaMode 计算本笔费用的分摊单位数（人数或家庭数）
-    let totalUnitsForExpense: number;
-    if (aaMode === 'person') {
-      totalUnitsForExpense = scopeFamilies.reduce((sum, f) => sum + (memberCountMap[f.id] ?? 0), 0);
-    } else {
-      totalUnitsForExpense = scopeFamilies.length;
-    }
-    if (totalUnitsForExpense === 0) return;
+    // 参与人数（始终按人头）
+    const totalPeopleInScope = scopeFamilies.reduce(
+      (sum, f) => sum + (memberCountMap[f.id] ?? 1), 0
+    );
+    if (totalPeopleInScope === 0) return;
 
-    // 为每个参与家庭累加应摊金额
+    // 按人数比例分配给每家
     scopeFamilies.forEach(f => {
-      const units = aaMode === 'person' ? (memberCountMap[f.id] ?? 0) : 1;
-      shareByFamily[f.id] = (shareByFamily[f.id] ?? 0) + (e.amount * units) / totalUnitsForExpense;
+      const units = memberCountMap[f.id] ?? 1;
+      shareByFamily[f.id] = (shareByFamily[f.id] ?? 0) + (e.amount * units) / totalPeopleInScope;
     });
   });
 
@@ -160,15 +160,15 @@ export function calculateSettlement(plan: CampingPlan): Settlement {
     return {
       familyId: f.id,
       familyName: f.name,
-      memberCount: memberCountMap[f.id] ?? 0,
+      memberCount: people.filter(p => p.familyId === f.id).length, // 展示用真实人数
       paid,
       share,
       balance: paid - share,
     };
   });
 
-  // perUnit / totalUnits 保留为全员全额的参考值（用于 UI 展示）
-  const totalUnits = aaMode === 'person' ? people.length : families.length;
+  // perUnit = 每人均摊参考值（全员AA时准确；部分AA时为加权平均参考）
+  const totalUnits = Object.values(memberCountMap).reduce((s, n) => s + n, 0);
   const perUnit = totalUnits > 0 ? totalAmount / totalUnits : 0;
 
   // 最小化转账
@@ -203,5 +203,5 @@ export function calculateSettlement(plan: CampingPlan): Settlement {
     if (d.balance > -0.01) di++;
   }
 
-  return { totalAmount, aaMode, perUnit, totalUnits, familyBalances, transactions };
+  return { totalAmount, aaMode: 'person', perUnit, totalUnits, familyBalances, transactions };
 }

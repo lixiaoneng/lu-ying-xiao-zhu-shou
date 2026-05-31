@@ -238,7 +238,7 @@ export default function ExpensesTab() {
             <div style={{ fontSize: 11, opacity: 0.75, marginTop: 2 }}>
               {hasPartialAA
                 ? '含部分分摊'
-                : `每方 ¥${plan.families.length > 0 ? (aaTotal / plan.families.length).toFixed(2) : '-'}`}
+                : `每人 ¥${plan.people.length > 0 ? (aaTotal / plan.people.length).toFixed(2) : '-'}`}
             </div>
           </div>
         </div>

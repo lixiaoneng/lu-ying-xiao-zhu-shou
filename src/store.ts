@@ -24,7 +24,7 @@ export function savePlans(plans: CampingPlan[]): void {
 export function migratePlan(p: CampingPlan): CampingPlan {
   return {
     ...p,
-    aaMode: p.aaMode ?? 'family',
+    aaMode: 'person', // AA 始终按人头；历史数据中的 'family' 值不再使用
     menuItems: p.menuItems ?? [],
     people: p.people ?? [],
     families: (p.families ?? []).map(f => ({ isSolo: false, ...f })),

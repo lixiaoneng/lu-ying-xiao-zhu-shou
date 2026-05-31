@@ -81,9 +81,7 @@ export default function ShareTab() {
         lines.push('⚖️ AA 费用');
         const modeStr = hasPartialAA
           ? '含部分分摊'
-          : s.aaMode === 'person'
-            ? `共 ${s.totalUnits} 人，每人 ¥${s.perUnit.toFixed(2)}`
-            : `共 ${s.totalUnits} 方，每方 ¥${s.perUnit.toFixed(2)}`;
+          : `共 ${s.totalUnits} 人，每人 ¥${s.perUnit.toFixed(2)}`;
         lines.push(`  合计：¥${s.totalAmount.toFixed(2)}（${modeStr}）`);
         lines.push('');
         lines.push('💰 垫付情况');
