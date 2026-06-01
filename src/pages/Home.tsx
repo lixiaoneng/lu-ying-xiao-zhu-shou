@@ -17,6 +17,7 @@ export default function Home({ onOpenPlan }: Props) {
   const [showNew, setShowNew] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDate, setNewDate] = useState('');
+  const [newEndDate, setNewEndDate] = useState('');
   const [newLoc, setNewLoc] = useState('');
   const [enableCloud, setEnableCloud] = useState(isSupabaseConfigured());
   const [toDelete, setToDelete] = useState<string | null>(null);
@@ -52,6 +53,7 @@ export default function Home({ onOpenPlan }: Props) {
       id: generateId(),
       name: newName.trim(),
       date: newDate,
+      endDate: newEndDate,
       location: newLoc.trim(),
       aaMode: 'family',
       people: [],
@@ -77,7 +79,7 @@ export default function Home({ onOpenPlan }: Props) {
     refresh();
 
     setShowNew(false);
-    setNewName(''); setNewDate(''); setNewLoc('');
+    setNewName(''); setNewDate(''); setNewEndDate(''); setNewLoc('');
     setCreating(false);
     onOpenPlan(plan.id, roomCode);
   }
@@ -186,9 +188,10 @@ export default function Home({ onOpenPlan }: Props) {
     e.target.value = '';
   }
 
-  function formatDate(d: string) {
+  function formatDate(d: string, end?: string) {
     if (!d) return '';
-    return new Date(d + 'T00:00:00').toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' });
+    const fmt = (s: string) => new Date(s + 'T00:00:00').toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' });
+    return end ? `${fmt(d)} - ${fmt(end)}` : fmt(d);
   }
 
   return (
@@ -401,7 +404,7 @@ export default function Home({ onOpenPlan }: Props) {
                     }}>
                       {p.date && (
                         <span style={{ display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
-                          📅 {formatDate(p.date)}
+                          📅 {formatDate(p.date, p.endDate)}
                         </span>
                       )}
                       {p.date && p.location && (
@@ -446,11 +449,15 @@ export default function Home({ onOpenPlan }: Props) {
               <h3 style={{ fontSize: 18, marginBottom: 20 }}>新建露营计划</h3>
               <div className="form-group">
                 <label className="form-label">计划名称 *</label>
-                <input className="input" placeholder="例：五月山野露营" value={newName} onChange={e => setNewName(e.target.value)} autoFocus maxLength={20} />
+                <input className="input" placeholder="例：五月山野露营" value={newName} onChange={e => setNewName(e.target.value)} maxLength={20} />
               </div>
               <div className="form-group">
                 <label className="form-label">日期</label>
-                <input className="input" type="date" value={newDate} onChange={e => setNewDate(e.target.value)} />
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input className="input" type="date" value={newDate} onChange={e => setNewDate(e.target.value)} style={{ flex: 1, width: '100%' }} />
+                  <span style={{ color: 'var(--text-muted)', fontSize: 13, flexShrink: 0 }}>至</span>
+                  <input className="input" type="date" value={newEndDate} min={newDate || undefined} onChange={e => setNewEndDate(e.target.value)} style={{ flex: 1, width: '100%' }} />
+                </div>
               </div>
               <div className="form-group">
                 <label className="form-label">地点</label>

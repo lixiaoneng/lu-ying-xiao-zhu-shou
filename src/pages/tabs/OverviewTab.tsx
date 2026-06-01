@@ -30,6 +30,7 @@ export default function OverviewTab() {
   // Basic info edit state
   const [name, setName] = useState(plan.name);
   const [date, setDate] = useState(plan.date);
+  const [endDate, setEndDate] = useState(plan.endDate ?? '');
   const [location, setLocation] = useState(plan.location);
   const [dirty, setDirty] = useState(false);
 
@@ -57,7 +58,7 @@ export default function OverviewTab() {
   const [personFamily, setPersonFamily] = useState('');
 
   function saveBasic() {
-    updatePlan({ ...plan, name, date, location });
+    updatePlan({ ...plan, name, date, endDate, location });
     setDirty(false);
     toast('基本信息已保存');
   }
@@ -239,14 +240,24 @@ export default function OverviewTab() {
             maxLength={20}
           />
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <div className="form-group" style={{ flex: 1 }}>
-            <label className="form-label">日期</label>
+        <div className="form-group">
+          <label className="form-label">日期</label>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <input
               className="input"
               type="date"
               value={date}
               onChange={e => { setDate(e.target.value); setDirty(true); }}
+              style={{ flex: 1, width: '100%' }}
+            />
+            <span style={{ color: 'var(--text-muted)', fontSize: 13, flexShrink: 0 }}>至</span>
+            <input
+              className="input"
+              type="date"
+              value={endDate}
+              min={date || undefined}
+              onChange={e => { setEndDate(e.target.value); setDirty(true); }}
+              style={{ flex: 1, width: '100%' }}
             />
           </div>
         </div>

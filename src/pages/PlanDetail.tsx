@@ -16,10 +16,10 @@ const SYNC_ICON: Record<string, { icon: string; color: string; title: string }> 
 export default function PlanDetail() {
   const { plan, goHome, currentTab, roomCode, toast, syncStatus, forceSync } = useApp();
 
-  function formatDate(d: string) {
+  function formatDate(d: string, end?: string) {
     if (!d) return '';
-    const dt = new Date(d + 'T00:00:00');
-    return dt.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' });
+    const fmt = (s: string) => new Date(s + 'T00:00:00').toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' });
+    return end ? `${fmt(d)} - ${fmt(end)}` : fmt(d);
   }
 
   const syncInfo = roomCode ? SYNC_ICON[syncStatus] : null;
@@ -58,7 +58,7 @@ export default function PlanDetail() {
           </div>
           {(plan.date || plan.location) && (
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>
-              {plan.date && formatDate(plan.date)}
+              {plan.date && formatDate(plan.date, plan.endDate)}
               {plan.date && plan.location && ' · '}
               {plan.location}
             </div>

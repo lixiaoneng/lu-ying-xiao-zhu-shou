@@ -67,6 +67,7 @@ export interface CampingPlan {
   id: string;
   name: string;
   date: string;
+  endDate?: string;  // 结束日期，可选；旧数据无此字段，migratePlan 补空字符串
   location: string;
   aaMode: AAMode; // 'family' | 'person'
   roomCode?: string; // set when plan is a cloud plan
