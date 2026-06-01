@@ -25,6 +25,7 @@ export function migratePlan(p: CampingPlan): CampingPlan {
   return {
     ...p,
     aaMode: 'person', // AA 始终按人头；历史数据中的 'family' 值不再使用
+    endDate: p.endDate ?? '',
     menuItems: p.menuItems ?? [],
     people: p.people ?? [],
     families: (p.families ?? []).map(f => ({ isSolo: false, ...f })),
