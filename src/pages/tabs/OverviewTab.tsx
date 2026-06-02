@@ -570,18 +570,14 @@ export default function OverviewTab() {
             <label className="form-label">时间 *</label>
             <input
               className="input"
+              type="text"
               placeholder="如：周六"
               value={mTime}
               onChange={e => setMTime(e.target.value)}
-              list="time-suggestions"
+              autoComplete="off"
               autoFocus
               maxLength={20}
             />
-            <datalist id="time-suggestions">
-              {['周五', '周六', '周日', 'Day 1', 'Day 2', 'Day 3'].map(t => (
-                <option key={t} value={t} />
-              ))}
-            </datalist>
           </div>
           <div className="form-group" style={{ flex: 1 }}>
             <label className="form-label">餐次</label>
