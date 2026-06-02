@@ -3,6 +3,7 @@ import type { Person, Family, MenuItem } from '../../types';
 import { useApp } from '../../App';
 import { generateId } from '../../store';
 import Modal from '../../components/Modal';
+import { generateMenuImage } from '../../utils/generateMenuImage';
 
 
 const MEAL_PRESETS = ['早餐', '午餐', '晚餐', '下午茶', '宵夜', '其他'];
@@ -45,6 +46,12 @@ export default function OverviewTab() {
 
   // Menu section
   const [menuExpanded, setMenuExpanded] = useState(true);
+  const [menuImageUrl, setMenuImageUrl] = useState<string | null>(null);
+
+  function handleGenerateImage() {
+    const url = generateMenuImage(plan);
+    setMenuImageUrl(url);
+  }
 
   // Menu modal
   const [showMenuModal, setShowMenuModal] = useState(false);
@@ -441,6 +448,15 @@ export default function OverviewTab() {
         >
           <span className="section-title">🍽️ 露营菜单</span>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {plan.menuItems.length > 0 && (
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={e => { e.stopPropagation(); handleGenerateImage(); }}
+                title="生成菜单图片"
+              >
+                📸
+              </button>
+            )}
             <button className="btn btn-secondary btn-sm" onClick={e => { e.stopPropagation(); openAddMenu(); }}>＋ 添加</button>
             {plan.menuItems.length > 0 && (
               <span style={{ color: 'var(--text-muted)', fontSize: 16, lineHeight: 1, userSelect: 'none' }}>
@@ -546,6 +562,57 @@ export default function OverviewTab() {
               <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{s.label}</div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* ── Menu image preview ── */}
+      {menuImageUrl && (
+        <div
+          onClick={() => setMenuImageUrl(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1100,
+            background: 'rgba(20,10,4,0.82)',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'flex-start',
+            overflowY: 'auto',
+            animation: 'fadeIn 0.2s ease',
+            padding: '20px 16px 40px',
+          }}
+        >
+          {/* 关闭提示 */}
+          <div style={{
+            color: 'rgba(255,255,255,0.55)', fontSize: 13,
+            marginBottom: 14, letterSpacing: '0.04em',
+            flexShrink: 0,
+          }}>
+            点击任意处关闭
+          </div>
+
+          {/* 图片 */}
+          <img
+            src={menuImageUrl}
+            onClick={e => e.stopPropagation()}
+            alt="菜单图片"
+            style={{
+              width: '100%', maxWidth: 480,
+              borderRadius: 16,
+              boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+              display: 'block',
+              flexShrink: 0,
+            }}
+          />
+
+          {/* 保存提示 */}
+          <div style={{
+            marginTop: 18,
+            background: 'rgba(255,255,255,0.10)',
+            borderRadius: 12, padding: '10px 20px',
+            color: 'rgba(255,255,255,0.75)', fontSize: 13,
+            letterSpacing: '0.02em', textAlign: 'center',
+            flexShrink: 0,
+          }}>
+            📱 长按图片 → 保存到相册，即可分享到微信群
+          </div>
         </div>
       )}
 
