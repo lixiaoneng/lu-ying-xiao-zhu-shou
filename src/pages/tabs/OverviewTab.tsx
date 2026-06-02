@@ -3,9 +3,10 @@ import type { Person, Family, MenuItem } from '../../types';
 import { useApp } from '../../App';
 import { generateId } from '../../store';
 import Modal from '../../components/Modal';
+import { generateMenuImage } from '../../utils/generateMenuImage';
 
 
-const MEAL_PRESETS = ['早餐', '午餐', '晚餐', '晚间饮品', '宵夜', '下午茶', '篝火烧烤'];
+const MEAL_PRESETS = ['早餐', '午餐', '晚餐', '下午茶', '宵夜', '其他'];
 
 // Deterministic pastel color from a string
 function responsibleColor(name: string): { bg: string; text: string } {
@@ -42,6 +43,15 @@ export default function OverviewTab() {
   // Solo modal
   const [showSoloModal, setShowSoloModal] = useState(false);
   const [soloName, setSoloName] = useState('');
+
+  // Menu section
+  const [menuExpanded, setMenuExpanded] = useState(true);
+  const [menuImageUrl, setMenuImageUrl] = useState<string | null>(null);
+
+  function handleGenerateImage() {
+    const url = generateMenuImage(plan);
+    setMenuImageUrl(url);
+  }
 
   // Menu modal
   const [showMenuModal, setShowMenuModal] = useState(false);
@@ -93,11 +103,13 @@ export default function OverviewTab() {
   function deleteMenu(id: string) {
     updatePlan({ ...plan, menuItems: plan.menuItems.filter(m => m.id !== id) });
   }
-  // Group menu items by time
-  const menuGroups = plan.menuItems.reduce<{ time: string; items: MenuItem[] }[]>((acc, item) => {
-    const g = acc.find(g => g.time === item.time);
-    if (g) g.items.push(item);
-    else acc.push({ time: item.time, items: [item] });
+  // Group menu items by time → meal (display only, data unchanged)
+  const menuGroups = plan.menuItems.reduce<{ time: string; meals: { meal: string; items: MenuItem[] }[] }[]>((acc, item) => {
+    let tg = acc.find(g => g.time === item.time);
+    if (!tg) { tg = { time: item.time, meals: [] }; acc.push(tg); }
+    let mg = tg.meals.find(m => m.meal === item.meal);
+    if (!mg) { mg = { meal: item.meal, items: [] }; tg.meals.push(mg); }
+    mg.items.push(item);
     return acc;
   }, []);
 
@@ -273,87 +285,6 @@ export default function OverviewTab() {
         </div>
       </section>
 
-      {/* ── Menu ── */}
-      <section className="card" style={{ marginBottom: 14 }}>
-        <div className="section-header">
-          <span className="section-title">🍽️ 露营菜单</span>
-          <button className="btn btn-secondary btn-sm" onClick={openAddMenu}>＋ 添加</button>
-        </div>
-
-        {plan.menuItems.length === 0 ? (
-          <div className="empty-state" style={{ padding: '16px 0' }}>
-            <div className="empty-icon" style={{ fontSize: 28 }}>🥩</div>
-            <p style={{ fontSize: 13 }}>还没有菜单安排<br />添加后当做公告展示给所有人</p>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {menuGroups.map(group => (
-              <div key={group.time}>
-                {/* Day badge */}
-                <div style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                  background: 'linear-gradient(135deg, var(--primary) 0%, #E07A30 100%)',
-                  color: 'white', borderRadius: 20,
-                  padding: '3px 12px', fontSize: 12, fontWeight: 700,
-                  marginBottom: 8, letterSpacing: '0.04em',
-                }}>
-                  {group.time}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                  {group.items.map(item => {
-                    const rc = item.responsible ? responsibleColor(item.responsible) : null;
-                    return (
-                      <div key={item.id} style={{
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        background: 'var(--bg)',
-                        border: '1px solid var(--border)',
-                        borderRadius: 'var(--radius-sm)',
-                        padding: '9px 12px',
-                      }}>
-                        {/* Meal tag */}
-                        <span style={{
-                          flexShrink: 0,
-                          fontSize: 11, fontWeight: 700,
-                          color: 'var(--primary)',
-                          background: 'var(--primary-dim)',
-                          border: '1px solid var(--primary-border)',
-                          borderRadius: 20, padding: '2px 8px',
-                          whiteSpace: 'nowrap',
-                        }}>
-                          {item.meal}
-                        </span>
-                        {/* Menu text */}
-                        <span style={{
-                          flex: 1, fontSize: 14, color: 'var(--text)',
-                          lineHeight: 1.4, minWidth: 0,
-                        }}>
-                          {item.menu}
-                        </span>
-                        {/* Responsible chip */}
-                        {rc && (
-                          <span style={{
-                            flexShrink: 0,
-                            fontSize: 12, fontWeight: 700,
-                            background: rc.bg, color: rc.text,
-                            borderRadius: 20, padding: '3px 10px',
-                            whiteSpace: 'nowrap',
-                          }}>
-                            {item.responsible}
-                          </span>
-                        )}
-                        {/* Actions */}
-                        <button className="btn-icon" onClick={() => openEditMenu(item)} style={{ fontSize: 14, flexShrink: 0 }}>✏️</button>
-                        <button className="btn-icon" onClick={() => deleteMenu(item.id)} style={{ fontSize: 14, flexShrink: 0 }}>🗑️</button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
       {/* ── Families ── */}
       <section className="card" style={{ marginBottom: 14 }}>
         <div className="section-header">
@@ -508,6 +439,105 @@ export default function OverviewTab() {
         )}
       </section>
 
+      {/* ── Menu ── */}
+      <section className="card" style={{ marginBottom: 14 }}>
+        <div
+          className="section-header"
+          onClick={() => plan.menuItems.length > 0 && setMenuExpanded(v => !v)}
+          style={{ cursor: plan.menuItems.length > 0 ? 'pointer' : 'default' }}
+        >
+          <span className="section-title">🍽️ 露营菜单</span>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {plan.menuItems.length > 0 && (
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={e => { e.stopPropagation(); handleGenerateImage(); }}
+                title="生成菜单图片"
+              >
+                📸
+              </button>
+            )}
+            <button className="btn btn-secondary btn-sm" onClick={e => { e.stopPropagation(); openAddMenu(); }}>＋ 添加</button>
+            {plan.menuItems.length > 0 && (
+              <span style={{ color: 'var(--text-muted)', fontSize: 16, lineHeight: 1, userSelect: 'none' }}>
+                {menuExpanded ? '︿' : '﹀'}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {plan.menuItems.length === 0 ? (
+          <div className="empty-state" style={{ padding: '16px 0' }}>
+            <div className="empty-icon" style={{ fontSize: 28 }}>🥩</div>
+            <p style={{ fontSize: 13 }}>还没有菜单安排<br />添加后当做公告展示给所有人</p>
+          </div>
+        ) : menuExpanded ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {menuGroups.map(group => (
+              <div key={group.time}>
+                {/* Day badge */}
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center',
+                  background: 'linear-gradient(135deg, var(--primary) 0%, #E07A30 100%)',
+                  color: 'white', borderRadius: 20,
+                  padding: '3px 12px', fontSize: 12, fontWeight: 700,
+                  marginBottom: 8, letterSpacing: '0.04em',
+                }}>
+                  {group.time}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {group.meals.map(mealGroup => (
+                    <div key={mealGroup.meal}>
+                      {/* Meal sub-header */}
+                      <div style={{
+                        fontSize: 11, fontWeight: 700,
+                        color: 'var(--primary)',
+                        marginBottom: 5, paddingLeft: 2,
+                      }}>
+                        {mealGroup.meal}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {mealGroup.items.map(item => {
+                          const rc = item.responsible ? responsibleColor(item.responsible) : null;
+                          return (
+                            <div key={item.id} style={{
+                              display: 'flex', alignItems: 'center', gap: 8,
+                              background: 'var(--bg)',
+                              border: '1px solid var(--border)',
+                              borderRadius: 'var(--radius-sm)',
+                              padding: '8px 10px',
+                            }}>
+                              <span style={{
+                                flex: 1, fontSize: 14, color: 'var(--text)',
+                                lineHeight: 1.4, minWidth: 0,
+                              }}>
+                                {item.menu}
+                              </span>
+                              {rc && (
+                                <span style={{
+                                  flexShrink: 0, fontSize: 12, fontWeight: 700,
+                                  background: rc.bg, color: rc.text,
+                                  borderRadius: 20, padding: '2px 8px',
+                                  whiteSpace: 'nowrap',
+                                }}>
+                                  {item.responsible}
+                                </span>
+                              )}
+                              <button className="btn-icon" onClick={() => openEditMenu(item)} style={{ fontSize: 14, flexShrink: 0 }}>✏️</button>
+                              <button className="btn-icon" onClick={() => deleteMenu(item.id)} style={{ fontSize: 14, flexShrink: 0 }}>🗑️</button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </section>
+
       {/* Stats */}
       {plan.families.length > 0 && (
         <div style={{
@@ -535,6 +565,57 @@ export default function OverviewTab() {
         </div>
       )}
 
+      {/* ── Menu image preview ── */}
+      {menuImageUrl && (
+        <div
+          onClick={() => setMenuImageUrl(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1100,
+            background: 'rgba(20,10,4,0.82)',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'flex-start',
+            overflowY: 'auto',
+            animation: 'fadeIn 0.2s ease',
+            padding: '20px 16px 40px',
+          }}
+        >
+          {/* 关闭提示 */}
+          <div style={{
+            color: 'rgba(255,255,255,0.55)', fontSize: 13,
+            marginBottom: 14, letterSpacing: '0.04em',
+            flexShrink: 0,
+          }}>
+            点击任意处关闭
+          </div>
+
+          {/* 图片 */}
+          <img
+            src={menuImageUrl}
+            onClick={e => e.stopPropagation()}
+            alt="菜单图片"
+            style={{
+              width: '100%', maxWidth: 480,
+              borderRadius: 16,
+              boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+              display: 'block',
+              flexShrink: 0,
+            }}
+          />
+
+          {/* 保存提示 */}
+          <div style={{
+            marginTop: 18,
+            background: 'rgba(255,255,255,0.10)',
+            borderRadius: 12, padding: '10px 20px',
+            color: 'rgba(255,255,255,0.75)', fontSize: 13,
+            letterSpacing: '0.02em', textAlign: 'center',
+            flexShrink: 0,
+          }}>
+            📱 长按图片 → 保存到相册，即可分享到微信群
+          </div>
+        </div>
+      )}
+
       {/* Menu modal */}
       <Modal
         isOpen={showMenuModal}
@@ -556,22 +637,22 @@ export default function OverviewTab() {
             <label className="form-label">时间 *</label>
             <input
               className="input"
-              placeholder="如：周六、Day 1"
+              type="text"
+              placeholder="如：周六"
               value={mTime}
               onChange={e => setMTime(e.target.value)}
-              list="time-suggestions"
+              autoComplete="off"
               autoFocus
               maxLength={20}
             />
-            <datalist id="time-suggestions">
-              {['周五', '周六', '周日', 'Day 1', 'Day 2', 'Day 3'].map(t => (
-                <option key={t} value={t} />
-              ))}
-            </datalist>
           </div>
           <div className="form-group" style={{ flex: 1 }}>
             <label className="form-label">餐次</label>
             <select className="input" value={mMeal} onChange={e => setMMeal(e.target.value)}>
+              {/* 若旧数据 meal 不在预设里，额外加一条以防丢失 */}
+              {!MEAL_PRESETS.includes(mMeal) && mMeal && (
+                <option key={mMeal} value={mMeal}>{mMeal}</option>
+              )}
               {MEAL_PRESETS.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </div>
@@ -580,7 +661,7 @@ export default function OverviewTab() {
           <label className="form-label">菜单内容 *</label>
           <input
             className="input"
-            placeholder="如：番茄微辣火锅、烤肉+沙拉"
+            placeholder="如：火锅"
             value={mMenuText}
             onChange={e => setMMenuText(e.target.value)}
             maxLength={20}
@@ -590,7 +671,7 @@ export default function OverviewTab() {
           <label className="form-label">负责人</label>
           <input
             className="input"
-            placeholder="可填家庭/小组或个人名字"
+            placeholder="可选"
             value={mResponsible}
             onChange={e => setMResponsible(e.target.value)}
             maxLength={20}
