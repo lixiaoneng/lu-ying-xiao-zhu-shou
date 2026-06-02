@@ -434,18 +434,18 @@ export default function OverviewTab() {
 
       {/* ── Menu ── */}
       <section className="card" style={{ marginBottom: 14 }}>
-        <div className="section-header">
+        <div
+          className="section-header"
+          onClick={() => plan.menuItems.length > 0 && setMenuExpanded(v => !v)}
+          style={{ cursor: plan.menuItems.length > 0 ? 'pointer' : 'default' }}
+        >
           <span className="section-title">🍽️ 露营菜单</span>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <button className="btn btn-secondary btn-sm" onClick={openAddMenu}>＋ 添加</button>
+            <button className="btn btn-secondary btn-sm" onClick={e => { e.stopPropagation(); openAddMenu(); }}>＋ 添加</button>
             {plan.menuItems.length > 0 && (
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={() => setMenuExpanded(v => !v)}
-                style={{ fontSize: 12, padding: '4px 8px' }}
-              >
-                {menuExpanded ? '收起' : `展开 (${plan.menuItems.length})`}
-              </button>
+              <span style={{ color: 'var(--text-muted)', fontSize: 16, lineHeight: 1, userSelect: 'none' }}>
+                {menuExpanded ? '︿' : '﹀'}
+              </span>
             )}
           </div>
         </div>
