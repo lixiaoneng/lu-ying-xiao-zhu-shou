@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { Person, Family, MenuItem } from '../../types';
 import { useApp } from '../../App';
 import { generateId } from '../../store';
@@ -44,6 +44,16 @@ export default function OverviewTab() {
   const [showSoloModal, setShowSoloModal] = useState(false);
   const [soloName, setSoloName] = useState('');
 
+  // Expanded families
+  const [expandedFamilies, setExpandedFamilies] = useState<Set<string>>(new Set());
+  function toggleFamily(id: string) {
+    setExpandedFamilies(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
   // Menu section
   const [menuExpanded, setMenuExpanded] = useState(true);
   const [menuImageUrl, setMenuImageUrl] = useState<string | null>(null);
@@ -68,6 +78,11 @@ export default function OverviewTab() {
   const [personFamily, setPersonFamily] = useState('');
 
   function saveBasic() {
+    // 日期校验：结束日期不能早于开始日期
+    if (date && endDate && endDate < date) {
+      toast('结束日期不能早于开始日期', 'error');
+      return;
+    }
     updatePlan({ ...plan, name, date, endDate, location });
     setDirty(false);
     toast('基本信息已保存');
@@ -182,10 +197,12 @@ export default function OverviewTab() {
   }
 
   // ─── People ─────────────────────────────
-  function openAddPerson() {
+  const personNameRef = useRef<HTMLInputElement>(null);
+
+  function openAddPerson(familyId?: string) {
     setEditPerson(null);
     setPersonName('');
-    setPersonFamily(nonSoloFamilies[0]?.id ?? '');
+    setPersonFamily(familyId ?? nonSoloFamilies[0]?.id ?? '');
     setShowPersonModal(true);
   }
   function openEditPerson(p: Person) {
@@ -194,7 +211,7 @@ export default function OverviewTab() {
     setPersonFamily(p.familyId);
     setShowPersonModal(true);
   }
-  function savePerson() {
+  function savePerson(keepOpen = false) {
     if (!personName.trim()) return;
     if (editPerson) {
       const editedFamily = plan.families.find(f => f.id === editPerson.familyId);
@@ -214,15 +231,22 @@ export default function OverviewTab() {
         });
       }
       toast('成员信息已更新');
+      setShowPersonModal(false);
     } else {
       if (!personFamily) return;
       updatePlan({
         ...plan,
         people: [...plan.people, { id: generateId(), name: personName.trim(), familyId: personFamily }],
       });
-      toast('已添加成员');
+      toast('已添加');
+      if (keepOpen) {
+        // 连续添加：清空姓名，保留家庭，焦点回到输入框
+        setPersonName('');
+        setTimeout(() => personNameRef.current?.focus(), 50);
+      } else {
+        setShowPersonModal(false);
+      }
     }
-    setShowPersonModal(false);
   }
   function deletePerson(id: string) {
     updatePlan({ ...plan, people: plan.people.filter(p => p.id !== id) });
@@ -259,7 +283,13 @@ export default function OverviewTab() {
               className="input"
               type="date"
               value={date}
-              onChange={e => { setDate(e.target.value); setDirty(true); }}
+              onChange={e => {
+              const d = e.target.value;
+              // 方案 A：开始日期变晚时，自动把结束日期同步为开始日期
+              if (endDate && d && d > endDate) setEndDate(d);
+              setDate(d);
+              setDirty(true);
+            }}
               style={{ flex: 1, width: '100%' }}
             />
             <span style={{ color: 'var(--text-muted)', fontSize: 13, flexShrink: 0 }}>至</span>
@@ -299,27 +329,77 @@ export default function OverviewTab() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {nonSoloFamilies.map(f => {
-              const memberCount = plan.people.filter(p => p.familyId === f.id).length;
+              const members = plan.people.filter(p => p.familyId === f.id);
+              const isExpanded = expandedFamilies.has(f.id);
               return (
                 <div key={f.id} style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '10px 12px',
                   background: 'var(--bg)',
                   borderRadius: 'var(--radius-sm)',
                   border: '1px solid var(--border)',
+                  overflow: 'hidden',
                 }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: 10,
-                    background: 'var(--primary-dim)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 18,
-                  }}>🏕️</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: 15 }}>{f.name}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{memberCount} 位成员</div>
+                  {/* Card header row */}
+                  <div
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer' }}
+                    onClick={() => toggleFamily(f.id)}
+                  >
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 10,
+                      background: 'var(--primary-dim)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 18, flexShrink: 0,
+                    }}>🏕️</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: 15 }}>{f.name}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{members.length} 位成员</div>
+                    </div>
+                    <button className="btn-icon" onClick={e => { e.stopPropagation(); openEditFamily(f); }} style={{ fontSize: 16 }}>✏️</button>
+                    <button className="btn-icon" onClick={e => { e.stopPropagation(); deleteFamily(f.id); }} style={{ fontSize: 16 }}>🗑️</button>
+                    <span style={{ color: 'var(--text-muted)', fontSize: 14, userSelect: 'none', marginLeft: 2 }}>
+                      {isExpanded ? '︿' : '﹀'}
+                    </span>
                   </div>
-                  <button className="btn-icon" onClick={() => openEditFamily(f)} style={{ fontSize: 16 }}>✏️</button>
-                  <button className="btn-icon" onClick={() => deleteFamily(f.id)} style={{ fontSize: 16 }}>🗑️</button>
+                  {/* Expanded: members list */}
+                  {isExpanded && (
+                    <div style={{ padding: '0 12px 12px', borderTop: '1px solid var(--border)' }}>
+                      {members.length > 0 ? (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+                          {members.map(person => (
+                            <div key={person.id} style={{
+                              display: 'flex', alignItems: 'center', gap: 6,
+                              background: 'var(--card)', border: '1px solid var(--border)',
+                              borderRadius: 20, padding: '5px 10px 5px 8px',
+                            }}>
+                              <div style={{
+                                width: 24, height: 24, borderRadius: '50%',
+                                background: 'var(--primary-dim)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: 12,
+                              }}>
+                                {person.name.slice(0, 1)}
+                              </div>
+                              <span style={{ fontSize: 14 }}>{person.name}</span>
+                              <button
+                                onClick={() => openEditPerson(person)}
+                                style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--text-muted)', padding: 0 }}
+                              >✏️</button>
+                              <button
+                                onClick={() => deletePerson(person.id)}
+                                style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--red)', padding: 0 }}
+                              >✕</button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 10 }}>暂无成员</div>
+                      )}
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => openAddPerson(f.id)}
+                        style={{ marginTop: 10, fontSize: 13 }}
+                      >＋ 添加成员</button>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -327,114 +407,47 @@ export default function OverviewTab() {
         )}
       </section>
 
-      {/* ── People ── */}
+      {/* ── Solo participants ── */}
       <section className="card" style={{ marginBottom: 14 }}>
         <div className="section-header">
-          <span className="section-title">👥 参与人员</span>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button className="btn btn-secondary btn-sm" onClick={openAddSolo}>
-              ＋ 单人
-            </button>
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={openAddPerson}
-              disabled={nonSoloFamilies.length === 0}
-              style={{ opacity: nonSoloFamilies.length === 0 ? 0.4 : 1 }}
-            >
-              ＋ 成员
-            </button>
-          </div>
+          <span className="section-title">👤 独立参与者</span>
+          <button className="btn btn-secondary btn-sm" onClick={openAddSolo}>＋ 单人</button>
         </div>
 
-        {plan.people.length === 0 ? (
-          <div className="empty-state" style={{ padding: '20px 0' }}>
-            <div className="empty-icon">👥</div>
-            <p>添加露营的小伙伴吧<br />
-              <span style={{ fontSize: 12, color: 'var(--text-light)' }}>
-                「单人」独立AA·「成员」归属家庭
-              </span>
+        {soloPeople.length === 0 ? (
+          <div className="empty-state" style={{ padding: '16px 0' }}>
+            <div className="empty-icon">👤</div>
+            <p style={{ fontSize: 13 }}>没有独立参与者<br />
+              <span style={{ fontSize: 12, color: 'var(--text-light)' }}>不属于任何家庭/小组，单独参与 AA</span>
             </p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {/* Solo people */}
-            {soloPeople.length > 0 && (
-              <div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {soloPeople.map(person => (
+              <div key={person.id} style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: 'var(--bg)', border: '1px solid var(--border)',
+                borderRadius: 20, padding: '5px 10px 5px 8px',
+              }}>
                 <div style={{
-                  fontSize: 12, fontWeight: 700, color: 'var(--text-muted)',
-                  letterSpacing: '0.06em', marginBottom: 6,
-                }}>独立参与者</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {soloPeople.map(person => (
-                    <div key={person.id} style={{
-                      display: 'flex', alignItems: 'center', gap: 6,
-                      background: 'var(--bg)', border: '1px solid var(--border)',
-                      borderRadius: 20, padding: '5px 10px 5px 8px',
-                    }}>
-                      <div style={{
-                        width: 24, height: 24, borderRadius: '50%',
-                        background: '#E4EEFF',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 11,
-                      }}>
-                        👤
-                      </div>
-                      <span style={{ fontSize: 14 }}>{person.name}</span>
-                      <button
-                        onClick={() => openEditPerson(person)}
-                        style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--text-muted)', padding: 0 }}
-                      >✏️</button>
-                      <button
-                        onClick={() => deleteSoloPerson(person.id, person.familyId)}
-                        style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--red)', padding: 0 }}
-                      >✕</button>
-                    </div>
-                  ))}
+                  width: 24, height: 24, borderRadius: '50%',
+                  background: '#E4EEFF',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 11,
+                }}>
+                  👤
                 </div>
+                <span style={{ fontSize: 14 }}>{person.name}</span>
+                <button
+                  onClick={() => openEditPerson(person)}
+                  style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--text-muted)', padding: 0 }}
+                >✏️</button>
+                <button
+                  onClick={() => deleteSoloPerson(person.id, person.familyId)}
+                  style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--red)', padding: 0 }}
+                >✕</button>
               </div>
-            )}
-            {/* Family-grouped people */}
-            {nonSoloFamilies.map(fam => {
-              const members = plan.people.filter(p => p.familyId === fam.id);
-              if (members.length === 0) return null;
-              return (
-                <div key={fam.id}>
-                  <div style={{
-                    fontSize: 12, fontWeight: 700, color: 'var(--text-muted)',
-                    letterSpacing: '0.06em', marginBottom: 6,
-                  }}>
-                    {fam.name}
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {members.map(person => (
-                      <div key={person.id} style={{
-                        display: 'flex', alignItems: 'center', gap: 6,
-                        background: 'var(--bg)', border: '1px solid var(--border)',
-                        borderRadius: 20, padding: '5px 10px 5px 8px',
-                      }}>
-                        <div style={{
-                          width: 24, height: 24, borderRadius: '50%',
-                          background: 'var(--primary-dim)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 12,
-                        }}>
-                          {person.name.slice(0, 1)}
-                        </div>
-                        <span style={{ fontSize: 14 }}>{person.name}</span>
-                        <button
-                          onClick={() => openEditPerson(person)}
-                          style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--text-muted)', padding: 0 }}
-                        >✏️</button>
-                        <button
-                          onClick={() => deletePerson(person.id)}
-                          style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--red)', padding: 0 }}
-                        >✕</button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+            ))}
           </div>
         )}
       </section>
@@ -746,19 +759,41 @@ export default function OverviewTab() {
         onClose={() => setShowPersonModal(false)}
         title={editPerson ? (isSoloEdit ? '编辑独立参与者' : '编辑成员') : '添加成员'}
         footer={
-          <button
-            className="btn btn-primary"
-            style={{ width: '100%' }}
-            onClick={savePerson}
-            disabled={!personName.trim() || (!isSoloEdit && !personFamily)}
-          >
-            {editPerson ? '保存修改' : '添加成员'}
-          </button>
+          editPerson ? (
+            <button
+              className="btn btn-primary"
+              style={{ width: '100%' }}
+              onClick={() => savePerson()}
+              disabled={!personName.trim() || (!isSoloEdit && !personFamily)}
+            >
+              保存修改
+            </button>
+          ) : (
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                className="btn btn-secondary"
+                style={{ flex: 1 }}
+                onClick={() => savePerson(true)}
+                disabled={!personName.trim() || !personFamily}
+              >
+                继续添加
+              </button>
+              <button
+                className="btn btn-primary"
+                style={{ flex: 1 }}
+                onClick={() => savePerson(false)}
+                disabled={!personName.trim() || !personFamily}
+              >
+                完成
+              </button>
+            </div>
+          )
         }
       >
         <div className={isSoloEdit ? 'form-group' : 'form-group'} style={isSoloEdit ? { marginBottom: 0 } : {}}>
           <label className="form-label">姓名/昵称</label>
           <input
+            ref={personNameRef}
             className="input"
             placeholder="例：煊哥"
             value={personName}

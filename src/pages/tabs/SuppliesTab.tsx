@@ -257,7 +257,7 @@ export default function SuppliesTab() {
             }}
           >
             <div style={{ fontSize: 36, marginBottom: 12 }}>🏕️</div>
-            <h3 style={{ fontSize: 16, marginBottom: 8 }}>还没有参与人员</h3>
+            <h3 style={{ fontSize: 16, marginBottom: 8 }}>还没有参与者</h3>
             <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.7, marginBottom: 20 }}>
               请先添加参与者，再录入物资：<br />
               <span style={{ color: 'var(--text)', fontWeight: 500 }}>家庭/小组</span>

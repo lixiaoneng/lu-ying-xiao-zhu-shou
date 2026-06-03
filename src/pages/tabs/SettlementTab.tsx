@@ -8,7 +8,7 @@ export default function SettlementTab() {
     return (
       <div className="empty-state" style={{ marginTop: 40 }}>
         <div className="empty-icon">⚖️</div>
-        <p>请先在「概况」中添加家庭/小组<br />或独立参与者，再来计算 AA</p>
+        <p>请先在「概况」中添加<br />家庭/小组或独立参与者，再来计算 AA</p>
       </div>
     );
   }
