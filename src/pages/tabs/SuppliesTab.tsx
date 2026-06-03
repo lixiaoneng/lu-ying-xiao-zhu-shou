@@ -37,7 +37,8 @@ const FAMILY_COLORS: { bg: string; text: string; border: string }[] = [
 ];
 
 export default function SuppliesTab() {
-  const { plan, updatePlan, toast } = useApp();
+  const { plan, updatePlan, toast, setCurrentTab } = useApp();
+  const [showNoFamilyGuide, setShowNoFamilyGuide] = useState(false);
   const [activeType, setActiveType] = useState<SupplyType>('personal');
   const [filterFamily, setFilterFamily] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
@@ -230,12 +231,58 @@ export default function SuppliesTab() {
       {/* FAB */}
       <button
         className="fab"
-        onClick={openAdd}
-        disabled={plan.families.length === 0}
-        style={{ opacity: plan.families.length === 0 ? 0.4 : 1 }}
+        onClick={plan.families.length === 0 ? () => setShowNoFamilyGuide(true) : openAdd}
       >
         ＋
       </button>
+
+      {/* No-family guide */}
+      {showNoFamilyGuide && (
+        <div
+          onClick={() => setShowNoFamilyGuide(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1001,
+            background: 'rgba(44,26,14,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '0 24px', animation: 'fadeIn 0.2s ease',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'var(--card)', borderRadius: 20,
+              padding: '28px 20px 20px', textAlign: 'center',
+              animation: 'slideUp 0.25s ease',
+              maxWidth: 320, width: '100%',
+            }}
+          >
+            <div style={{ fontSize: 36, marginBottom: 12 }}>🏕️</div>
+            <h3 style={{ fontSize: 16, marginBottom: 8 }}>还没有参与人员</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.7, marginBottom: 20 }}>
+              请先添加参与者，再录入物资：<br />
+              <span style={{ color: 'var(--text)', fontWeight: 500 }}>家庭/小组</span>
+              {' 或 '}
+              <span style={{ color: 'var(--text)', fontWeight: 500 }}>独立参与者</span>
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button
+                className="btn btn-primary"
+                style={{ width: '100%' }}
+                onClick={() => { setShowNoFamilyGuide(false); setCurrentTab('overview'); }}
+              >
+                去添加参与者 →
+              </button>
+              <button
+                className="btn btn-ghost"
+                style={{ width: '100%' }}
+                onClick={() => setShowNoFamilyGuide(false)}
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete confirm modal */}
       {deleteTarget && (
