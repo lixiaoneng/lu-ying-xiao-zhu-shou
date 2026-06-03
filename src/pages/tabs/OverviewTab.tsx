@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { Person, Family, MenuItem } from '../../types';
 import { useApp } from '../../App';
 import { generateId } from '../../store';
@@ -187,10 +187,12 @@ export default function OverviewTab() {
   }
 
   // ─── People ─────────────────────────────
-  function openAddPerson() {
+  const personNameRef = useRef<HTMLInputElement>(null);
+
+  function openAddPerson(familyId?: string) {
     setEditPerson(null);
     setPersonName('');
-    setPersonFamily(nonSoloFamilies[0]?.id ?? '');
+    setPersonFamily(familyId ?? nonSoloFamilies[0]?.id ?? '');
     setShowPersonModal(true);
   }
   function openEditPerson(p: Person) {
@@ -199,7 +201,7 @@ export default function OverviewTab() {
     setPersonFamily(p.familyId);
     setShowPersonModal(true);
   }
-  function savePerson() {
+  function savePerson(keepOpen = false) {
     if (!personName.trim()) return;
     if (editPerson) {
       const editedFamily = plan.families.find(f => f.id === editPerson.familyId);
@@ -219,15 +221,22 @@ export default function OverviewTab() {
         });
       }
       toast('成员信息已更新');
+      setShowPersonModal(false);
     } else {
       if (!personFamily) return;
       updatePlan({
         ...plan,
         people: [...plan.people, { id: generateId(), name: personName.trim(), familyId: personFamily }],
       });
-      toast('已添加成员');
+      toast('已添加');
+      if (keepOpen) {
+        // 连续添加：清空姓名，保留家庭，焦点回到输入框
+        setPersonName('');
+        setTimeout(() => personNameRef.current?.focus(), 50);
+      } else {
+        setShowPersonModal(false);
+      }
     }
-    setShowPersonModal(false);
   }
   function deletePerson(id: string) {
     updatePlan({ ...plan, people: plan.people.filter(p => p.id !== id) });
@@ -329,6 +338,11 @@ export default function OverviewTab() {
                     <div style={{ fontWeight: 600, fontSize: 15 }}>{f.name}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{memberCount} 位成员</div>
                   </div>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => openAddPerson(f.id)}
+                    style={{ fontSize: 12, padding: '4px 8px', marginRight: 4 }}
+                  >＋ 成员</button>
                   <button className="btn-icon" onClick={() => openEditFamily(f)} style={{ fontSize: 16 }}>✏️</button>
                   <button className="btn-icon" onClick={() => deleteFamily(f.id)} style={{ fontSize: 16 }}>🗑️</button>
                 </div>
@@ -341,14 +355,14 @@ export default function OverviewTab() {
       {/* ── People ── */}
       <section className="card" style={{ marginBottom: 14 }}>
         <div className="section-header">
-          <span className="section-title">👥 参与人员</span>
+          <span className="section-title">👥 成员名单</span>
           <div style={{ display: 'flex', gap: 6 }}>
             <button className="btn btn-secondary btn-sm" onClick={openAddSolo}>
               ＋ 单人
             </button>
             <button
               className="btn btn-secondary btn-sm"
-              onClick={openAddPerson}
+              onClick={() => openAddPerson()}
               disabled={nonSoloFamilies.length === 0}
               style={{ opacity: nonSoloFamilies.length === 0 ? 0.4 : 1 }}
             >
@@ -362,7 +376,7 @@ export default function OverviewTab() {
             <div className="empty-icon">👥</div>
             <p>添加露营的小伙伴吧<br />
               <span style={{ fontSize: 12, color: 'var(--text-light)' }}>
-                「单人」独立AA·「成员」归属家庭
+                「独立参与者」单独 AA · 「成员」归属家庭/小组
               </span>
             </p>
           </div>
@@ -757,19 +771,41 @@ export default function OverviewTab() {
         onClose={() => setShowPersonModal(false)}
         title={editPerson ? (isSoloEdit ? '编辑独立参与者' : '编辑成员') : '添加成员'}
         footer={
-          <button
-            className="btn btn-primary"
-            style={{ width: '100%' }}
-            onClick={savePerson}
-            disabled={!personName.trim() || (!isSoloEdit && !personFamily)}
-          >
-            {editPerson ? '保存修改' : '添加成员'}
-          </button>
+          editPerson ? (
+            <button
+              className="btn btn-primary"
+              style={{ width: '100%' }}
+              onClick={() => savePerson()}
+              disabled={!personName.trim() || (!isSoloEdit && !personFamily)}
+            >
+              保存修改
+            </button>
+          ) : (
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                className="btn btn-secondary"
+                style={{ flex: 1 }}
+                onClick={() => savePerson(true)}
+                disabled={!personName.trim() || !personFamily}
+              >
+                继续添加
+              </button>
+              <button
+                className="btn btn-primary"
+                style={{ flex: 1 }}
+                onClick={() => savePerson(false)}
+                disabled={!personName.trim() || !personFamily}
+              >
+                完成
+              </button>
+            </div>
+          )
         }
       >
         <div className={isSoloEdit ? 'form-group' : 'form-group'} style={isSoloEdit ? { marginBottom: 0 } : {}}>
           <label className="form-label">姓名/昵称</label>
           <input
+            ref={personNameRef}
             className="input"
             placeholder="例：煊哥"
             value={personName}

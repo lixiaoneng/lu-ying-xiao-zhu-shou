@@ -22,7 +22,7 @@ export default function ShareTab() {
     lines.push('');
 
     if (plan.people.length > 0) {
-      lines.push('👥 参与人员');
+      lines.push('👥 成员名单');
       plan.families.forEach(fam => {
         const members = plan.people.filter(p => p.familyId === fam.id);
         if (members.length > 0) {
