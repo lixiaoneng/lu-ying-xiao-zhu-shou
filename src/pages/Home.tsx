@@ -22,6 +22,7 @@ export default function Home({ onOpenPlan }: Props) {
   const [enableCloud, setEnableCloud] = useState(isSupabaseConfigured());
   const [toDelete, setToDelete] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [createDateError, setCreateDateError] = useState('');
 
   // Duplicate flow
   const [duplicateSource, setDuplicateSource] = useState<CampingPlan | null>(null);
@@ -47,6 +48,12 @@ export default function Home({ onOpenPlan }: Props) {
 
   async function handleCreate() {
     if (!newName.trim()) return;
+    // 日期校验：结束日期不能早于开始日期
+    if (newDate && newEndDate && newEndDate < newDate) {
+      setCreateDateError('结束日期不能早于开始日期');
+      return;
+    }
+    setCreateDateError('');
     setCreating(true);
     const now = new Date().toISOString();
     const plan: CampingPlan = {
@@ -79,7 +86,7 @@ export default function Home({ onOpenPlan }: Props) {
     refresh();
 
     setShowNew(false);
-    setNewName(''); setNewDate(''); setNewEndDate(''); setNewLoc('');
+    setNewName(''); setNewDate(''); setNewEndDate(''); setNewLoc(''); setCreateDateError('');
     setCreating(false);
     onOpenPlan(plan.id, roomCode);
   }
@@ -442,7 +449,7 @@ export default function Home({ onOpenPlan }: Props) {
 
       {/* ── New plan sheet ── */}
       {showNew && (
-        <div onClick={() => setShowNew(false)} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(44,26,14,0.45)', display: 'flex', alignItems: 'flex-end', animation: 'fadeIn 0.22s ease' }}>
+        <div onClick={() => { setShowNew(false); setCreateDateError(''); }} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(44,26,14,0.45)', display: 'flex', alignItems: 'flex-end', animation: 'fadeIn 0.22s ease' }}>
           <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, margin: '0 auto', background: 'var(--card)', borderRadius: '20px 20px 0 0', paddingBottom: 'env(safe-area-inset-bottom)', animation: 'sheetIn 0.3s cubic-bezier(0.32,0.72,0,1)' }}>
             <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '12px auto 4px' }} />
             <div style={{ padding: '8px 20px 24px' }}>
@@ -454,10 +461,34 @@ export default function Home({ onOpenPlan }: Props) {
               <div className="form-group">
                 <label className="form-label">日期</label>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <input className="input" type="date" value={newDate} onChange={e => setNewDate(e.target.value)} style={{ flex: 1, width: '100%' }} />
+                  <input
+                    className="input"
+                    type="date"
+                    value={newDate}
+                    onChange={e => {
+                      const d = e.target.value;
+                      setNewDate(d);
+                      // 方案 A：开始日期变晚时，自动把结束日期同步为开始日期
+                      if (newEndDate && d && d > newEndDate) setNewEndDate(d);
+                      setCreateDateError('');
+                    }}
+                    style={{ flex: 1, width: '100%' }}
+                  />
                   <span style={{ color: 'var(--text-muted)', fontSize: 13, flexShrink: 0 }}>至</span>
-                  <input className="input" type="date" value={newEndDate} min={newDate || undefined} onChange={e => setNewEndDate(e.target.value)} style={{ flex: 1, width: '100%' }} />
+                  <input
+                    className="input"
+                    type="date"
+                    value={newEndDate}
+                    min={newDate || undefined}
+                    onChange={e => { setNewEndDate(e.target.value); setCreateDateError(''); }}
+                    style={{ flex: 1, width: '100%' }}
+                  />
                 </div>
+                {createDateError && (
+                  <div style={{ fontSize: 12, color: 'var(--error, #e53e3e)', marginTop: 6 }}>
+                    ⚠️ {createDateError}
+                  </div>
+                )}
               </div>
               <div className="form-group">
                 <label className="form-label">地点</label>
@@ -475,7 +506,7 @@ export default function Home({ onOpenPlan }: Props) {
               )}
 
               <div style={{ display: 'flex', gap: 10 }}>
-                <button className="btn btn-ghost" onClick={() => setShowNew(false)} style={{ flex: 1 }}>取消</button>
+                <button className="btn btn-ghost" onClick={() => { setShowNew(false); setCreateDateError(''); }} style={{ flex: 1 }}>取消</button>
                 <button
                   className="btn btn-primary"
                   onClick={handleCreate}

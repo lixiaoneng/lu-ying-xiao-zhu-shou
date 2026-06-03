@@ -68,6 +68,11 @@ export default function OverviewTab() {
   const [personFamily, setPersonFamily] = useState('');
 
   function saveBasic() {
+    // 日期校验：结束日期不能早于开始日期
+    if (date && endDate && endDate < date) {
+      toast('结束日期不能早于开始日期', 'error');
+      return;
+    }
     updatePlan({ ...plan, name, date, endDate, location });
     setDirty(false);
     toast('基本信息已保存');
@@ -259,7 +264,13 @@ export default function OverviewTab() {
               className="input"
               type="date"
               value={date}
-              onChange={e => { setDate(e.target.value); setDirty(true); }}
+              onChange={e => {
+              const d = e.target.value;
+              // 方案 A：开始日期变晚时，自动把结束日期同步为开始日期
+              if (endDate && d && d > endDate) setEndDate(d);
+              setDate(d);
+              setDirty(true);
+            }}
               style={{ flex: 1, width: '100%' }}
             />
             <span style={{ color: 'var(--text-muted)', fontSize: 13, flexShrink: 0 }}>至</span>
