@@ -32,6 +32,29 @@ export default function ShareTab() {
       lines.push('');
     }
 
+    // Menu
+    if (plan.menuItems.length > 0) {
+      lines.push('🍽️ 露营菜单');
+      const menuGroups: { time: string; meals: { meal: string; items: typeof plan.menuItems }[] }[] = [];
+      for (const item of plan.menuItems) {
+        let tg = menuGroups.find(g => g.time === item.time);
+        if (!tg) { tg = { time: item.time, meals: [] }; menuGroups.push(tg); }
+        let mg = tg.meals.find(m => m.meal === item.meal);
+        if (!mg) { mg = { meal: item.meal, items: [] }; tg.meals.push(mg); }
+        mg.items.push(item);
+      }
+      for (const tg of menuGroups) {
+        lines.push(`  ${tg.time}`);
+        for (const mg of tg.meals) {
+          for (const it of mg.items) {
+            const resp = it.responsible ? `（${it.responsible}）` : '';
+            lines.push(`    ${mg.meal}：${it.menu}${resp}`);
+          }
+        }
+      }
+      lines.push('');
+    }
+
     // Personal supplies by family
     const personal = plan.supplies.filter(s => s.type === 'personal');
     if (personal.length > 0) {
