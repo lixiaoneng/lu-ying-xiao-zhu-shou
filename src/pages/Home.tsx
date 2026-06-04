@@ -492,7 +492,7 @@ export default function Home({ onOpenPlan }: Props) {
               </div>
               <div className="form-group">
                 <label className="form-label">地点</label>
-                <input className="input" placeholder="例：北京延庆松山营地" value={newLoc} onChange={e => setNewLoc(e.target.value)} maxLength={20} />
+                <input className="input" placeholder="例：北京延庆松山营地，或粘贴高德导航链接" value={newLoc} onChange={e => setNewLoc(e.target.value)} maxLength={200} />
               </div>
 
               {cloudEnabled && (

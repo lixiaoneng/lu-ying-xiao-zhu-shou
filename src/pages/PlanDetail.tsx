@@ -57,7 +57,10 @@ export default function PlanDetail() {
             {plan.name}
           </div>
           {(plan.date || plan.location) && (
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>
+            <div style={{
+              fontSize: 12, color: 'var(--text-muted)', marginTop: 1,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
               {plan.date && formatDate(plan.date, plan.endDate)}
               {plan.date && plan.location && ' · '}
               {plan.location}

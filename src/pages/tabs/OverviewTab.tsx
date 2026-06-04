@@ -325,8 +325,8 @@ export default function OverviewTab() {
             className="input"
             value={location}
             onChange={e => { setLocation(e.target.value); setDirty(true); }}
-            placeholder="营地地址"
-            maxLength={20}
+            placeholder="营地地址或高德/百度导航链接"
+            maxLength={200}
           />
         </div>
       </section>
