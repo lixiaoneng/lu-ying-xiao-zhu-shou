@@ -25,10 +25,39 @@ export default function ShareTab() {
       lines.push('👥 成员名单');
       plan.families.forEach(fam => {
         const members = plan.people.filter(p => p.familyId === fam.id);
-        if (members.length > 0) {
+        if (members.length === 0) return;
+        // 独立参与者（isSolo）：组名 = 成员名时直接显示名字，不重复
+        const isSoloSame = fam.isSolo && members.length === 1 && members[0].name === fam.name;
+        if (isSoloSame) {
+          lines.push(`  ${fam.name}`);
+        } else {
           lines.push(`  ${fam.name}：${members.map(m => m.name).join('、')}`);
         }
       });
+      lines.push('');
+    }
+
+    // Menu
+    if (plan.menuItems.length > 0) {
+      lines.push('🍽️ 露营菜单');
+      const menuGroups: { time: string; meals: { meal: string; items: typeof plan.menuItems }[] }[] = [];
+      for (const item of plan.menuItems) {
+        let tg = menuGroups.find(g => g.time === item.time);
+        if (!tg) { tg = { time: item.time, meals: [] }; menuGroups.push(tg); }
+        let mg = tg.meals.find(m => m.meal === item.meal);
+        if (!mg) { mg = { meal: item.meal, items: [] }; tg.meals.push(mg); }
+        mg.items.push(item);
+      }
+      for (const tg of menuGroups) {
+        lines.push(`  ${tg.time}`);
+        for (const mg of tg.meals) {
+          lines.push(`    ${mg.meal}：`);
+          for (const it of mg.items) {
+            const resp = it.responsible ? `（${it.responsible}）` : '';
+            lines.push(`    - ${it.menu}${resp}`);
+          }
+        }
+      }
       lines.push('');
     }
 
