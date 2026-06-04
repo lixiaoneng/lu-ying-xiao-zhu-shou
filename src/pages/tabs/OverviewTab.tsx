@@ -69,7 +69,9 @@ export default function OverviewTab() {
   const [mTime, setMTime] = useState('');
   const [mMeal, setMMeal] = useState('');
   const [mMenuText, setMMenuText] = useState('');
-  const [mResponsible, setMResponsible] = useState('');
+  const [mSelectedNames, setMSelectedNames] = useState<string[]>([]);
+  const [mCustomText, setMCustomText] = useState('');
+  const [mDropdownOpen, setMDropdownOpen] = useState(false);
 
   // Person modal
   const [showPersonModal, setShowPersonModal] = useState(false);
@@ -91,22 +93,36 @@ export default function OverviewTab() {
   // ─── Menu items ─────────────────────────
   function openAddMenu() {
     setEditMenu(null);
-    setMTime(''); setMMeal(MEAL_PRESETS[1]); setMMenuText(''); setMResponsible('');
+    setMTime(''); setMMeal(MEAL_PRESETS[1]); setMMenuText('');
+    setMSelectedNames([]); setMCustomText(''); setMDropdownOpen(false);
     setShowMenuModal(true);
   }
   function openEditMenu(m: MenuItem) {
     setEditMenu(m);
-    setMTime(m.time); setMMeal(m.meal); setMMenuText(m.menu); setMResponsible(m.responsible);
+    setMTime(m.time); setMMeal(m.meal); setMMenuText(m.menu);
+    setMDropdownOpen(false);
+    // Parse existing responsible: known person names → selected, rest → custom text
+    if (m.responsible) {
+      const allPersonNames = new Set(plan.people.map(p => p.name));
+      const tokens = m.responsible.split(/[,，、]/).map(s => s.trim()).filter(Boolean);
+      const known = tokens.filter(t => allPersonNames.has(t));
+      const unknown = tokens.filter(t => !allPersonNames.has(t));
+      setMSelectedNames(known);
+      setMCustomText(unknown.join('、'));
+    } else {
+      setMSelectedNames([]); setMCustomText('');
+    }
     setShowMenuModal(true);
   }
   function saveMenu() {
     if (!mTime.trim() || !mMenuText.trim()) return;
+    const responsible = [...mSelectedNames, mCustomText.trim()].filter(Boolean).join('、');
     const item: MenuItem = {
       id: editMenu?.id ?? generateId(),
       time: mTime.trim(),
       meal: mMeal || MEAL_PRESETS[1],
       menu: mMenuText.trim(),
-      responsible: mResponsible.trim(),
+      responsible,
     };
     const items = editMenu
       ? plan.menuItems.map(m => m.id === editMenu.id ? item : m)
@@ -682,12 +698,148 @@ export default function OverviewTab() {
         </div>
         <div className="form-group" style={{ marginBottom: 0 }}>
           <label className="form-label">负责人</label>
+          {/* ── Dropdown selector ── */}
+          {(nonSoloFamilies.length > 0 || soloPeople.length > 0) && (() => {
+            const toggleName = (name: string) => {
+              setMSelectedNames(prev =>
+                prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]
+              );
+            };
+            return (
+              <div style={{ position: 'relative', marginBottom: 8 }}>
+                {/* Trigger */}
+                <div
+                  onClick={() => setMDropdownOpen(v => !v)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    minHeight: 40, padding: '6px 10px',
+                    border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
+                    background: 'var(--bg)', cursor: 'pointer',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  {mSelectedNames.length === 0 ? (
+                    <span style={{ fontSize: 14, color: 'var(--text-light)', flex: 1 }}>从参与者中选择…</span>
+                  ) : (
+                    mSelectedNames.map(name => (
+                      <span key={name} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        background: 'var(--primary-dim)', color: 'var(--primary)',
+                        borderRadius: 20, padding: '2px 8px', fontSize: 13, fontWeight: 600,
+                      }}>
+                        {name}
+                        <span
+                          onClick={e => { e.stopPropagation(); toggleName(name); }}
+                          style={{ cursor: 'pointer', fontSize: 11, opacity: 0.7 }}
+                        >✕</span>
+                      </span>
+                    ))
+                  )}
+                  <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: 12 }}>
+                    {mDropdownOpen ? '︿' : '﹀'}
+                  </span>
+                </div>
+                {/* Dropdown panel */}
+                {mDropdownOpen && (
+                  <div style={{
+                    position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
+                    background: 'var(--card)', border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-sm)', zIndex: 200,
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
+                    maxHeight: 220, overflowY: 'auto',
+                  }}>
+                    {/* 家庭成员 section */}
+                    {nonSoloFamilies.map(fam => {
+                      const members = plan.people.filter(p => p.familyId === fam.id);
+                      if (members.length === 0) return null;
+                      return (
+                        <div key={fam.id}>
+                          <div style={{
+                            padding: '6px 12px 2px',
+                            fontSize: 11, fontWeight: 700, color: 'var(--text-muted)',
+                            letterSpacing: '0.06em',
+                          }}>
+                            {fam.name}
+                          </div>
+                          {members.map(person => {
+                            const checked = mSelectedNames.includes(person.name);
+                            return (
+                              <div
+                                key={person.id}
+                                onClick={() => toggleName(person.name)}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: 10,
+                                  padding: '8px 12px 8px 20px', cursor: 'pointer',
+                                  background: checked ? 'var(--primary-dim)' : 'transparent',
+                                }}
+                              >
+                                <div style={{
+                                  width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+                                  border: `2px solid ${checked ? 'var(--primary)' : 'var(--border)'}`,
+                                  background: checked ? 'var(--primary)' : 'transparent',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}>
+                                  {checked && <span style={{ color: '#fff', fontSize: 10, lineHeight: 1 }}>✓</span>}
+                                </div>
+                                <span style={{ fontSize: 14, color: checked ? 'var(--primary)' : 'var(--text)' }}>
+                                  {person.name}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                    {/* 独立参与者 section */}
+                    {soloPeople.length > 0 && (
+                      <div>
+                        <div style={{
+                          padding: '6px 12px 2px',
+                          fontSize: 11, fontWeight: 700, color: 'var(--text-muted)',
+                          letterSpacing: '0.06em',
+                        }}>
+                          独立参与者
+                        </div>
+                        {soloPeople.map(person => {
+                          const checked = mSelectedNames.includes(person.name);
+                          return (
+                            <div
+                              key={person.id}
+                              onClick={() => toggleName(person.name)}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 10,
+                                padding: '8px 12px 8px 20px', cursor: 'pointer',
+                                background: checked ? 'var(--primary-dim)' : 'transparent',
+                              }}
+                            >
+                              <div style={{
+                                width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+                                border: `2px solid ${checked ? 'var(--primary)' : 'var(--border)'}`,
+                                background: checked ? 'var(--primary)' : 'transparent',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              }}>
+                                {checked && <span style={{ color: '#fff', fontSize: 10, lineHeight: 1 }}>✓</span>}
+                              </div>
+                              <span style={{ fontSize: 14, color: checked ? 'var(--primary)' : 'var(--text)' }}>
+                                {person.name}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+          {/* ── Free-form text input ── */}
           <input
             className="input"
-            placeholder="可选"
-            value={mResponsible}
-            onChange={e => setMResponsible(e.target.value)}
-            maxLength={20}
+            placeholder="其他（手填，如：大家一起、营地主理人）"
+            value={mCustomText}
+            onChange={e => setMCustomText(e.target.value)}
+            maxLength={30}
           />
         </div>
       </Modal>
