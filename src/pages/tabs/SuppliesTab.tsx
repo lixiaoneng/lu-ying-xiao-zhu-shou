@@ -70,7 +70,6 @@ export default function SuppliesTab() {
 
   // Form state
   const [fName, setFName] = useState('');
-  const [fSystemCategory, setFSystemCategory] = useState(SYSTEM_CATEGORIES[0]);
   const [fSystemCategorySelect, setFSystemCategorySelect] = useState(SYSTEM_CATEGORIES[0]);
   const [fCustomCategory, setFCustomCategory] = useState('');
   const [fAssignee, setFAssignee] = useState('');
@@ -114,7 +113,6 @@ export default function SuppliesTab() {
     setFName('');
     const defaultCat = SYSTEM_CATEGORIES[0];
     setFSystemCategorySelect(defaultCat);
-    setFSystemCategory(defaultCat);
     setFCustomCategory('');
     setFAssignee(plan.families[0]?.id ?? '');
     setFQty('');
@@ -134,7 +132,6 @@ export default function SuppliesTab() {
       setFSystemCategorySelect(CUSTOM_OPTION);
       setFCustomCategory(cat);
     }
-    setFSystemCategory(cat);
     setFAssignee(s.assigneeId);
     setFQty(s.quantity);
     setFNeedsAA(s.needsAA);
