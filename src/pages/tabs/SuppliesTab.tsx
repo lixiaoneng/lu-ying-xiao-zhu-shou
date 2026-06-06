@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Supply, SupplyType } from '../../types';
 
-import { SUPPLY_TYPE_LABELS, SUPPLY_TYPE_ICONS, SUPPLY_CATEGORIES } from '../../types';
+import { SUPPLY_TYPE_LABELS, SUPPLY_TYPE_ICONS, SYSTEM_CATEGORIES } from '../../types';
 import { useApp } from '../../App';
 import { generateId } from '../../store';
 import Modal from '../../components/Modal';
@@ -18,23 +18,43 @@ function sanitizeAmount(val: string): string {
   return v;
 }
 
+/** 取物资的功能分类，优先 system_category，其次 category，最后兜底"其他" */
+function getItemSystemCategory(s: Supply): string {
+  return s.system_category || s.category || '其他';
+}
+
+/** 按 SYSTEM_CATEGORIES 预设顺序排序分类名，自定义分类排末尾，"其他"永远最后 */
+function sortCategories(cats: string[]): string[] {
+  return [...cats].sort((a, b) => {
+    const ai = SYSTEM_CATEGORIES.indexOf(a);
+    const bi = SYSTEM_CATEGORIES.indexOf(b);
+    if (a === '其他') return 1;
+    if (b === '其他') return -1;
+    if (ai === -1 && bi === -1) return a.localeCompare(b, 'zh');
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+}
+
 const SUPPLY_ACCENT: Record<SupplyType, string> = {
   personal: '#C8651A',
   food: '#3D6B4F',
   gear: '#5B7FA8',
 };
 
-// Warm, earthy palette for family tags — up to 8 families
 const FAMILY_COLORS: { bg: string; text: string; border: string }[] = [
-  { bg: '#FDEBD0', text: '#A84E10', border: '#F0C090' }, // amber
-  { bg: '#E0EFE6', text: '#2E6B48', border: '#A8D4B8' }, // forest green
-  { bg: '#E0EAF5', text: '#3A5F8A', border: '#A8C0E0' }, // slate blue
-  { bg: '#F5E6E0', text: '#8A3A2E', border: '#E0A898' }, // terracotta
-  { bg: '#EDE8F5', text: '#5A3A8A', border: '#C0A8E0' }, // lavender
-  { bg: '#EBF0DC', text: '#4A5E28', border: '#C0D098' }, // olive
-  { bg: '#DCF0EF', text: '#226060', border: '#98D0CE' }, // teal
-  { bg: '#F0EAE0', text: '#6A5040', border: '#D0B898' }, // warm brown
+  { bg: '#FDEBD0', text: '#A84E10', border: '#F0C090' },
+  { bg: '#E0EFE6', text: '#2E6B48', border: '#A8D4B8' },
+  { bg: '#E0EAF5', text: '#3A5F8A', border: '#A8C0E0' },
+  { bg: '#F5E6E0', text: '#8A3A2E', border: '#E0A898' },
+  { bg: '#EDE8F5', text: '#5A3A8A', border: '#C0A8E0' },
+  { bg: '#EBF0DC', text: '#4A5E28', border: '#C0D098' },
+  { bg: '#DCF0EF', text: '#226060', border: '#98D0CE' },
+  { bg: '#F0EAE0', text: '#6A5040', border: '#D0B898' },
 ];
+
+const CUSTOM_OPTION = '__custom__';
 
 export default function SuppliesTab() {
   const { plan, updatePlan, toast, setCurrentTab } = useApp();
@@ -45,13 +65,20 @@ export default function SuppliesTab() {
   const [editSupply, setEditSupply] = useState<Supply | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Supply | null>(null);
 
-  // Form
+  // 折叠状态：key = `${type}::${categoryName}`，值为 true 表示折叠
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+  // Form state
   const [fName, setFName] = useState('');
-  const [fCategory, setFCategory] = useState('');
+  const [fSystemCategory, setFSystemCategory] = useState(SYSTEM_CATEGORIES[0]);
+  const [fSystemCategorySelect, setFSystemCategorySelect] = useState(SYSTEM_CATEGORIES[0]);
+  const [fCustomCategory, setFCustomCategory] = useState('');
   const [fAssignee, setFAssignee] = useState('');
   const [fQty, setFQty] = useState('');
   const [fNeedsAA, setFNeedsAA] = useState(false);
   const [fPrice, setFPrice] = useState('');
+
+  const isCustom = fSystemCategorySelect === CUSTOM_OPTION;
 
   const familyMap = Object.fromEntries(plan.families.map(f => [f.id, f.name]));
   const familyColorMap = Object.fromEntries(
@@ -62,10 +89,33 @@ export default function SuppliesTab() {
     .filter(s => s.type === activeType)
     .filter(s => filterFamily === 'all' || s.assigneeId === filterFamily);
 
+  const readyCount = filtered.filter(s => s.isReady).length;
+  const accent = SUPPLY_ACCENT[activeType];
+
+  // 按功能分类分组
+  const categoryNames = sortCategories([...new Set(filtered.map(getItemSystemCategory))]);
+
+  function toggleCollapse(type: SupplyType, cat: string) {
+    const key = `${type}::${cat}`;
+    setCollapsed(prev => ({ ...prev, [key]: !prev[key] }));
+  }
+
+  function isCollapsed(type: SupplyType, cat: string) {
+    return !!collapsed[`${type}::${cat}`];
+  }
+
+  function resolveFSystemCategory(): string {
+    if (isCustom) return fCustomCategory.trim() || '其他';
+    return fSystemCategorySelect;
+  }
+
   function openAdd() {
     setEditSupply(null);
     setFName('');
-    setFCategory(SUPPLY_CATEGORIES[activeType][0]);
+    const defaultCat = SYSTEM_CATEGORIES[0];
+    setFSystemCategorySelect(defaultCat);
+    setFSystemCategory(defaultCat);
+    setFCustomCategory('');
     setFAssignee(plan.families[0]?.id ?? '');
     setFQty('');
     setFNeedsAA(activeType === 'food');
@@ -76,7 +126,15 @@ export default function SuppliesTab() {
   function openEdit(s: Supply) {
     setEditSupply(s);
     setFName(s.name);
-    setFCategory(s.category);
+    const cat = s.system_category || s.category || SYSTEM_CATEGORIES[0];
+    if (SYSTEM_CATEGORIES.includes(cat)) {
+      setFSystemCategorySelect(cat);
+      setFCustomCategory('');
+    } else {
+      setFSystemCategorySelect(CUSTOM_OPTION);
+      setFCustomCategory(cat);
+    }
+    setFSystemCategory(cat);
     setFAssignee(s.assigneeId);
     setFQty(s.quantity);
     setFNeedsAA(s.needsAA);
@@ -87,11 +145,12 @@ export default function SuppliesTab() {
   function saveSupply() {
     if (!fName.trim() || !fAssignee) return;
     const price = fPrice.trim() ? parseFloat(fPrice) : undefined;
+    const sysCategory = resolveFSystemCategory();
     if (editSupply) {
       updatePlan({
         ...plan,
         supplies: plan.supplies.map(s => s.id === editSupply.id
-          ? { ...s, name: fName.trim(), category: fCategory, assigneeId: fAssignee, quantity: fQty.trim(), needsAA: fNeedsAA, price }
+          ? { ...s, name: fName.trim(), system_category: sysCategory, category: sysCategory, assigneeId: fAssignee, quantity: fQty.trim(), needsAA: fNeedsAA, price }
           : s),
       });
       toast('物品已更新');
@@ -99,7 +158,8 @@ export default function SuppliesTab() {
       const newSupply: Supply = {
         id: generateId(),
         name: fName.trim(),
-        category: fCategory,
+        category: sysCategory,
+        system_category: sysCategory,
         assigneeId: fAssignee,
         quantity: fQty.trim(),
         isReady: false,
@@ -126,12 +186,6 @@ export default function SuppliesTab() {
     toast('已删除');
     setDeleteTarget(null);
   }
-
-  const readyCount = filtered.filter(s => s.isReady).length;
-  const accent = SUPPLY_ACCENT[activeType];
-
-  // Group by category
-  const categories = [...new Set(filtered.map(s => s.category))];
 
   return (
     <div style={{ padding: '14px 14px 0' }}>
@@ -188,40 +242,71 @@ export default function SuppliesTab() {
         </div>
       )}
 
-      {/* Supply list */}
+      {/* Supply list grouped by system_category */}
       {filtered.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">{SUPPLY_TYPE_ICONS[activeType]}</div>
           <p>还没有{SUPPLY_TYPE_LABELS[activeType]}项目<br />点击右下角 ＋ 添加</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {categories.map(cat => {
-            const items = filtered.filter(s => s.category === cat);
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {categoryNames.map(cat => {
+            const items = filtered.filter(s => getItemSystemCategory(s) === cat);
+            if (items.length === 0) return null;
+            const collapsed_ = isCollapsed(activeType, cat);
             return (
               <div key={cat}>
-                <div style={{
-                  fontSize: 12, fontWeight: 700, color: 'var(--text-muted)',
-                  letterSpacing: '0.06em', marginBottom: 6,
-                  display: 'flex', alignItems: 'center', gap: 6,
-                }}>
-                  <span>{cat}</span>
-                  <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                  {items.map(s => (
-                    <SupplyCard
-                      key={s.id}
-                      supply={s}
-                      familyName={familyMap[s.assigneeId] ?? '未指定'}
-                      familyColor={familyColorMap[s.assigneeId]}
-                      accent={accent}
-                      onToggle={() => toggleReady(s.id)}
-                      onEdit={() => openEdit(s)}
-                      onDelete={() => setDeleteTarget(s)}
-                    />
-                  ))}
-                </div>
+                {/* Category header — full row tappable */}
+                <button
+                  onClick={() => toggleCollapse(activeType, cat)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center',
+                    gap: 8, padding: '7px 10px',
+                    background: 'var(--bg-warm)',
+                    border: '1px solid var(--border)',
+                    borderRadius: collapsed_ ? 'var(--radius-xs)' : 'var(--radius-xs) var(--radius-xs) 0 0',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  <span style={{
+                    fontSize: 11, transition: 'transform 0.2s',
+                    transform: collapsed_ ? 'rotate(-90deg)' : 'none',
+                    color: 'var(--text-muted)',
+                    display: 'inline-block',
+                  }}>▼</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', flex: 1 }}>{cat}</span>
+                  <span style={{
+                    fontSize: 12, color: 'var(--text-light)',
+                    background: 'var(--card)', border: '1px solid var(--border)',
+                    borderRadius: 10, padding: '1px 7px',
+                  }}>{items.length}</span>
+                </button>
+
+                {/* Items */}
+                {!collapsed_ && (
+                  <div style={{
+                    border: '1px solid var(--border)', borderTop: 'none',
+                    borderRadius: '0 0 var(--radius-xs) var(--radius-xs)',
+                    overflow: 'hidden',
+                  }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                      {items.map((s, idx) => (
+                        <div key={s.id} style={{ borderTop: idx > 0 ? '1px solid var(--border)' : 'none' }}>
+                          <SupplyCard
+                            supply={s}
+                            familyName={familyMap[s.assigneeId] ?? '未指定'}
+                            familyColor={familyColorMap[s.assigneeId]}
+                            accent={accent}
+                            onToggle={() => toggleReady(s.id)}
+                            onEdit={() => openEdit(s)}
+                            onDelete={() => setDeleteTarget(s)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -350,12 +435,27 @@ export default function SuppliesTab() {
           />
         </div>
         <div className="form-group">
-          <label className="form-label">分类</label>
-          <select className="input" value={fCategory} onChange={e => setFCategory(e.target.value)}>
-            {SUPPLY_CATEGORIES[activeType].map(c => (
+          <label className="form-label">功能分类</label>
+          <select
+            className="input"
+            value={fSystemCategorySelect}
+            onChange={e => setFSystemCategorySelect(e.target.value)}
+          >
+            {SYSTEM_CATEGORIES.map(c => (
               <option key={c} value={c}>{c}</option>
             ))}
+            <option value={CUSTOM_OPTION}>自定义分类…</option>
           </select>
+          {isCustom && (
+            <input
+              className="input"
+              style={{ marginTop: 8 }}
+              placeholder="输入自定义分类名称"
+              value={fCustomCategory}
+              onChange={e => setFCustomCategory(e.target.value)}
+              maxLength={20}
+            />
+          )}
         </div>
         <div className="form-group">
           <label className="form-label">负责人/组 *</label>
@@ -427,8 +527,6 @@ function SupplyCard({ supply: s, familyName, familyColor, accent, onToggle, onEd
   return (
     <div style={{
       background: 'var(--card)',
-      borderRadius: 'var(--radius-sm)',
-      border: '1px solid var(--border)',
       borderLeft: `3.5px solid ${s.isReady ? '#3D6B4F' : accent}`,
       padding: '11px 12px',
       display: 'flex',

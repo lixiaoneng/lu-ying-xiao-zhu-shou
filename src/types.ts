@@ -32,10 +32,28 @@ export const SUPPLY_CATEGORIES: Record<SupplyType, string[]> = {
   gear: ['炊具', '照明', '桌椅', '娱乐', '急救', '其他'],
 };
 
+// 功能系统分类预设（跨 type 通用）
+export const SYSTEM_CATEGORIES: string[] = [
+  '庇护系统',
+  '睡眠系统',
+  '厨房系统',
+  '餐饮食材',
+  '桌椅会客',
+  '照明系统',
+  '氛围系统',
+  '娱乐系统',
+  '收纳运输',
+  '清洁卫生',
+  '安全急救',
+  '儿童宠物',
+  '其他',
+];
+
 export interface Supply {
   id: string;
   name: string;
   category: string;
+  system_category?: string; // 功能系统分类（新字段，旧数据无此字段时 fallback 到 category）
   assigneeId: string;
   quantity: string;
   isReady: boolean;
