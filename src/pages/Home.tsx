@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import type { CampingPlan } from '../types';
+import { useAuth } from '../hooks/useAuth';
 import {
   loadPlans, loadPlan, savePlan, deletePlan, generateId,
   exportPlanAsJson, importPlanFromJson, duplicatePlan,
@@ -8,12 +9,22 @@ import { createSamplePlan } from '../sampleData';
 import { isSupabaseConfigured } from '../supabase';
 import { generateRoomCode, createPlanInCloud, loadPlanByRoomCode } from '../sync';
 
+/** 邮箱前缀截断：超过 8 位只显示前 6 位 + 省略号 */
+function shortEmail(email: string): string {
+  if (!email) return '已登录';
+  const prefix = email.split('@')[0];
+  return prefix.length > 8 ? prefix.slice(0, 6) + '…' : prefix;
+}
+
 interface Props {
   onOpenPlan: (id: string, roomCode?: string) => void;
   onOpenEquipment: () => void;
 }
 
 export default function Home({ onOpenPlan, onOpenEquipment }: Props) {
+  // Auth 状态仅用于装备大本营入口展示，不影响计划任何功能
+  const { user, loading: authLoading } = useAuth();
+
   const [plans, setPlans] = useState<CampingPlan[]>(() => loadPlans());
   const [showNew, setShowNew] = useState(false);
   const [newName, setNewName] = useState('');
@@ -465,8 +476,26 @@ export default function Home({ onOpenPlan, onOpenEquipment }: Props) {
                 装备大本营
               </div>
               <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                保存常用露营装备，下次出行不用从零整理
+                {user ? '我的装备库已云端保存' : '登录后保存常用装备'}
               </div>
+              {/* 登录状态指示器：authLoading 时留空，避免闪烁 */}
+              {!authLoading && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                  {user ? (
+                    <>
+                      <span style={{
+                        width: 6, height: 6, borderRadius: '50%',
+                        background: 'var(--green)', flexShrink: 0,
+                      }} />
+                      <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 500 }}>
+                        {shortEmail(user.email ?? '')}
+                      </span>
+                    </>
+                  ) : (
+                    <span style={{ fontSize: 11, color: 'var(--text-light)' }}>未登录</span>
+                  )}
+                </div>
+              )}
             </div>
             <span style={{ fontSize: 18, color: 'var(--text-light)', flexShrink: 0 }}>›</span>
           </button>
