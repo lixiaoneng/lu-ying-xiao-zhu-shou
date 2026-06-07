@@ -309,7 +309,7 @@ export default function Home({ onOpenPlan, onOpenEquipment }: Props) {
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, padding: '20px 16px calc(84px + env(safe-area-inset-bottom))' }}>
+      <div style={{ flex: 1, padding: '20px 16px calc(24px + env(safe-area-inset-bottom))' }}>
 
         {/* Action buttons */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
@@ -325,6 +325,46 @@ export default function Home({ onOpenPlan, onOpenEquipment }: Props) {
             📥
           </button>
           <input ref={fileRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
+        </div>
+
+        {/* ── 装备大本营功能入口卡 ── */}
+        <div
+          onClick={onOpenEquipment}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+            padding: '0 16px',
+            height: 78,
+            marginBottom: 24,
+            background: 'linear-gradient(135deg, #FFF3E8 0%, #FDEBD6 100%)',
+            border: '1px solid rgba(200,101,26,0.20)',
+            borderRadius: 'var(--radius)',
+            cursor: 'pointer',
+            WebkitTapHighlightColor: 'transparent',
+            boxShadow: '0 2px 8px rgba(200,101,26,0.07)',
+          }}
+        >
+          <span style={{ fontSize: 30, lineHeight: 1, flexShrink: 0 }}>🎒</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', lineHeight: 1.3 }}>
+              装备大本营
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3, lineHeight: 1.4 }}>
+              {!authLoading && user ? '我的装备库已云端保存' : '登录后保存常用装备'}
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+            {authLoading ? null : user ? (
+              <>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)', flexShrink: 0 }} />
+                <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 500 }}>{shortEmail(user.email ?? '')}</span>
+              </>
+            ) : (
+              <span style={{ fontSize: 12, color: 'var(--text-light)' }}>未登录</span>
+            )}
+            <span style={{ fontSize: 20, color: 'rgba(200,101,26,0.45)', marginLeft: 4 }}>›</span>
+          </div>
         </div>
 
         {/* Plan list */}
@@ -458,52 +498,6 @@ export default function Home({ onOpenPlan, onOpenEquipment }: Props) {
           </>
         )}
 
-      </div>
-
-      {/* ── 装备大本营 固定底部 Dock ── */}
-      <div
-        onClick={onOpenEquipment}
-        style={{
-          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 200,
-          background: 'var(--card)',
-          borderTop: '1px solid var(--border)',
-          boxShadow: '0 -2px 12px rgba(90,60,30,0.08)',
-          paddingBottom: 'env(safe-area-inset-bottom)',
-          cursor: 'pointer',
-          WebkitTapHighlightColor: 'transparent',
-        }}
-      >
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 12,
-          padding: '14px 20px',
-          maxWidth: 480, margin: '0 auto',
-        }}>
-          <span style={{ fontSize: 28, lineHeight: 1, flexShrink: 0 }}>🎒</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', lineHeight: 1.3 }}>
-              装备大本营
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>
-              {user ? '我的装备库已云端保存' : '登录后保存常用装备'}
-            </div>
-          </div>
-          {!authLoading && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-              {user ? (
-                <>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)', flexShrink: 0 }} />
-                  <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 500 }}>{shortEmail(user.email ?? '')}</span>
-                </>
-              ) : (
-                <span style={{ fontSize: 12, color: 'var(--text-light)' }}>未登录</span>
-              )}
-              <span style={{ fontSize: 18, color: 'var(--text-light)', marginLeft: 4 }}>›</span>
-            </div>
-          )}
-          {authLoading && (
-            <span style={{ fontSize: 18, color: 'var(--text-light)', flexShrink: 0 }}>›</span>
-          )}
-        </div>
       </div>
 
       {/* ── New plan sheet ── */}
