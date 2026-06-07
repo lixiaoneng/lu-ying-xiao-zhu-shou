@@ -53,7 +53,7 @@
 - [ ] 装备大本营分类总览中的装备搜索
 - [ ] 装备大本营"设置密码"入口（已登录状态下）
 - [ ] 运营统计后台
-- [ ] 微信登录（技术路径待确认）
+- [ ] 微信登录（**前置任务**：需先完成 `profiles + user_identities` 设计，技术路径待确认）
 
 ---
 
@@ -93,6 +93,23 @@ src/
 - `equipment_items` 表：`user_id uuid references auth.users(id) on delete cascade`
 - Supabase Auth Confirm email：**已关闭**
 - Password Reset 邮件模板：**已汉化**，保留 `{{ .ConfirmationURL }}`
+
+---
+
+## 🔒 身份体系约束（微信登录前置任务）
+
+**当前架构**：`equipment_items.user_id → auth.users.id`（Supabase Auth 邮箱账号），无 `profiles` / `user_identities` 表。
+
+**未来接入微信/小程序/手机号等多登录方式，必须先完成**（前置任务，不属于当前上线范围）：
+
+1. 设计 `profiles` 表（统一用户档案）
+2. 设计 `user_identities` 表（外部登录身份 → 内部 user_id 的映射）
+3. 确保邮箱账号与微信账号绑定到同一 `user_id`，共享同一份装备数据
+
+**绝对禁止**：
+- 把微信 openid / unionid 直接写入 `equipment_items.user_id`
+- 绕过 Supabase Auth 自行创建另一套用户 ID 体系
+- 在 `profiles + user_identities` 设计未完成并确认前，开始实现任何多登录方式
 
 ---
 
