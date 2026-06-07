@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import type { CampingPlan } from '../types';
+import { useAuth } from '../hooks/useAuth';
 import {
   loadPlans, loadPlan, savePlan, deletePlan, generateId,
   exportPlanAsJson, importPlanFromJson, duplicatePlan,
@@ -8,11 +9,22 @@ import { createSamplePlan } from '../sampleData';
 import { isSupabaseConfigured } from '../supabase';
 import { generateRoomCode, createPlanInCloud, loadPlanByRoomCode } from '../sync';
 
-interface Props {
-  onOpenPlan: (id: string, roomCode?: string) => void;
+/** 邮箱前缀截断：超过 8 位只显示前 6 位 + 省略号 */
+function shortEmail(email: string): string {
+  if (!email) return '已登录';
+  const prefix = email.split('@')[0];
+  return prefix.length > 8 ? prefix.slice(0, 6) + '…' : prefix;
 }
 
-export default function Home({ onOpenPlan }: Props) {
+interface Props {
+  onOpenPlan: (id: string, roomCode?: string) => void;
+  onOpenEquipment: () => void;
+}
+
+export default function Home({ onOpenPlan, onOpenEquipment }: Props) {
+  // Auth 状态仅用于装备大本营入口展示，不影响计划任何功能
+  const { user, loading: authLoading } = useAuth();
+
   const [plans, setPlans] = useState<CampingPlan[]>(() => loadPlans());
   const [showNew, setShowNew] = useState(false);
   const [newName, setNewName] = useState('');
@@ -297,7 +309,7 @@ export default function Home({ onOpenPlan }: Props) {
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, padding: '20px 16px 32px' }}>
+      <div style={{ flex: 1, padding: '20px 16px calc(84px + env(safe-area-inset-bottom))' }}>
 
         {/* Action buttons */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
@@ -445,6 +457,53 @@ export default function Home({ onOpenPlan }: Props) {
             </div>
           </>
         )}
+
+      </div>
+
+      {/* ── 装备大本营 固定底部 Dock ── */}
+      <div
+        onClick={onOpenEquipment}
+        style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 200,
+          background: 'var(--card)',
+          borderTop: '1px solid var(--border)',
+          boxShadow: '0 -2px 12px rgba(90,60,30,0.08)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          cursor: 'pointer',
+          WebkitTapHighlightColor: 'transparent',
+        }}
+      >
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 12,
+          padding: '14px 20px',
+          maxWidth: 480, margin: '0 auto',
+        }}>
+          <span style={{ fontSize: 28, lineHeight: 1, flexShrink: 0 }}>🎒</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', lineHeight: 1.3 }}>
+              装备大本营
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>
+              {user ? '我的装备库已云端保存' : '登录后保存常用装备'}
+            </div>
+          </div>
+          {!authLoading && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+              {user ? (
+                <>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)', flexShrink: 0 }} />
+                  <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 500 }}>{shortEmail(user.email ?? '')}</span>
+                </>
+              ) : (
+                <span style={{ fontSize: 12, color: 'var(--text-light)' }}>未登录</span>
+              )}
+              <span style={{ fontSize: 18, color: 'var(--text-light)', marginLeft: 4 }}>›</span>
+            </div>
+          )}
+          {authLoading && (
+            <span style={{ fontSize: 18, color: 'var(--text-light)', flexShrink: 0 }}>›</span>
+          )}
+        </div>
       </div>
 
       {/* ── New plan sheet ── */}

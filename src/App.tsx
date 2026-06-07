@@ -5,6 +5,7 @@ import { isSupabaseConfigured } from './supabase';
 import { syncPlanToCloud, subscribeToPlan, unsubscribe, fetchPlanFromCloud } from './sync';
 import Home from './pages/Home';
 import PlanDetail from './pages/PlanDetail';
+import EquipmentPage from './pages/EquipmentPage';
 
 export type TabId = 'overview' | 'supplies' | 'expenses' | 'settlement' | 'share';
 export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error';
@@ -39,6 +40,8 @@ export function useApp(): AppCtx {
 export default function App() {
   const [plan, setPlan] = useState<CampingPlan | null>(null);
   const [roomCode, setRoomCode] = useState<string | null>(null);
+  // 无 plan 时的二级视图；plan 存在时始终显示 PlanDetail，与此无关
+  const [view, setView] = useState<'home' | 'equipment'>('home');
   const [currentTab, setCurrentTab] = useState<TabId>('overview');
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
@@ -232,8 +235,10 @@ export default function App() {
         }}>
           <PlanDetail />
         </AppContext.Provider>
+      ) : view === 'equipment' ? (
+        <EquipmentPage onBack={() => setView('home')} />
       ) : (
-        <Home onOpenPlan={openPlan} />
+        <Home onOpenPlan={openPlan} onOpenEquipment={() => setView('equipment')} />
       )}
 
       {/* Toast stack */}
