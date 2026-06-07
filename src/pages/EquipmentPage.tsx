@@ -54,6 +54,15 @@ export default function EquipmentPage({ onBack }: EquipmentPageProps) {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  // 发送成功后的倒计时（秒），> 0 时禁止再次发送
+  const [countdown, setCountdown] = useState(0);
+
+  // 倒计时递减：每秒 -1，降到 0 自然停止
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const t = setTimeout(() => setCountdown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [countdown]);
 
   // ── 退出登录确认 ──
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
@@ -108,17 +117,31 @@ export default function EquipmentPage({ onBack }: EquipmentPageProps) {
 
   // ─── 登录逻辑 ──────────────────────────────────────────────────────────────
 
+  function formatLoginError(msg: string): string {
+    const lower = msg.toLowerCase();
+    if (
+      lower.includes('rate') ||
+      lower.includes('too many') ||
+      lower.includes('429') ||
+      lower.includes('email rate limit')
+    ) {
+      return '发送太频繁了，请稍等几分钟后再试。';
+    }
+    return msg;
+  }
+
   async function handleSendMagicLink() {
     const trimmed = email.trim();
-    if (!trimmed) return;
+    if (!trimmed || countdown > 0 || sending) return;
     setSending(true);
     setLoginError(null);
     const { sent: ok, error } = await signInWithEmail(trimmed);
     setSending(false);
     if (ok) {
       setSent(true);
+      setCountdown(60); // 发送成功后 60 秒内禁止重发
     } else {
-      setLoginError(error ?? '发送失败，请稍后重试');
+      setLoginError(formatLoginError(error ?? '发送失败，请稍后重试'));
     }
   }
 
@@ -315,8 +338,9 @@ export default function EquipmentPage({ onBack }: EquipmentPageProps) {
         {isSupabaseConfigured() && !authLoading && !user && sent && (
           <SentScreen
             email={email}
+            countdown={countdown}
             onResend={() => { setSent(false); }}
-            onChangeEmail={() => { setSent(false); setEmail(''); }}
+            onChangeEmail={() => { setSent(false); setEmail(''); setCountdown(0); }}
           />
         )}
 
@@ -327,6 +351,7 @@ export default function EquipmentPage({ onBack }: EquipmentPageProps) {
             onEmailChange={setEmail}
             onSend={handleSendMagicLink}
             sending={sending}
+            countdown={countdown}
             error={loginError}
           />
         )}
@@ -656,14 +681,17 @@ export default function EquipmentPage({ onBack }: EquipmentPageProps) {
 
 /** 登录引导页 */
 function LoginGuide({
-  email, onEmailChange, onSend, sending, error,
+  email, onEmailChange, onSend, sending, countdown, error,
 }: {
   email: string;
   onEmailChange: (v: string) => void;
   onSend: () => void;
   sending: boolean;
+  countdown: number;
   error: string | null;
 }) {
+  const canSend = !!email.trim() && !sending && countdown <= 0;
+
   return (
     <div style={{ maxWidth: 380, margin: '0 auto', paddingTop: 32 }}>
       {/* 图标 + 标题 */}
@@ -691,7 +719,7 @@ function LoginGuide({
             placeholder="your@email.com"
             value={email}
             onChange={e => onEmailChange(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && email.trim()) onSend(); }}
+            onKeyDown={e => { if (e.key === 'Enter' && canSend) onSend(); }}
             autoFocus
           />
         </div>
@@ -710,9 +738,9 @@ function LoginGuide({
           className="btn btn-primary"
           style={{ width: '100%' }}
           onClick={onSend}
-          disabled={!email.trim() || sending}
+          disabled={!canSend}
         >
-          {sending ? '发送中…' : '发送登录链接'}
+          {sending ? '发送中…' : countdown > 0 ? `重新发送（${countdown}s）` : '发送登录链接'}
         </button>
       </div>
 
@@ -729,9 +757,10 @@ function LoginGuide({
 
 /** 邮件已发送提示页 */
 function SentScreen({
-  email, onResend, onChangeEmail,
+  email, countdown, onResend, onChangeEmail,
 }: {
   email: string;
+  countdown: number;
   onResend: () => void;
   onChangeEmail: () => void;
 }) {
@@ -750,17 +779,23 @@ function SentScreen({
       <p style={{
         fontSize: 15, fontWeight: 600, color: 'var(--text)',
         background: 'var(--bg-warm)', borderRadius: 8,
-        padding: '8px 16px', display: 'inline-block', marginBottom: 20,
+        padding: '8px 16px', display: 'inline-block', marginBottom: 16,
       }}>
         {email}
       </p>
-      <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 32 }}>
-        请打开邮件，点击「登录」链接<br />
-        链接有效期 60 分钟
+      <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.8, marginBottom: 28 }}>
+        请检查收件箱，点击「登录」链接完成登录。<br />
+        如果没看到，也可以查看垃圾邮件/广告邮件。<br />
+        链接有效期 60 分钟。
       </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <button className="btn btn-primary" style={{ width: '100%' }} onClick={onResend}>
-          重新发送
+        <button
+          className="btn btn-primary"
+          style={{ width: '100%' }}
+          onClick={onResend}
+          disabled={countdown > 0}
+        >
+          {countdown > 0 ? `重新发送（${countdown}s）` : '重新发送'}
         </button>
         <button className="btn btn-ghost" style={{ width: '100%' }} onClick={onChangeEmail}>
           修改邮箱地址
