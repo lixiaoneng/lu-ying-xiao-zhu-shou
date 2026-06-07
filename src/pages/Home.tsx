@@ -10,9 +10,10 @@ import { generateRoomCode, createPlanInCloud, loadPlanByRoomCode } from '../sync
 
 interface Props {
   onOpenPlan: (id: string, roomCode?: string) => void;
+  onOpenEquipment: () => void;
 }
 
-export default function Home({ onOpenPlan }: Props) {
+export default function Home({ onOpenPlan, onOpenEquipment }: Props) {
   const [plans, setPlans] = useState<CampingPlan[]>(() => loadPlans());
   const [showNew, setShowNew] = useState(false);
   const [newName, setNewName] = useState('');
@@ -445,6 +446,31 @@ export default function Home({ onOpenPlan }: Props) {
             </div>
           </>
         )}
+
+        {/* ── 装备大本营入口 ── */}
+        <div style={{ padding: '8px 0 20px' }}>
+          <button
+            onClick={onOpenEquipment}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+              background: 'var(--card)', border: '1px solid var(--border)',
+              borderRadius: 'var(--radius)', padding: '16px 18px',
+              cursor: 'pointer', textAlign: 'left',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          >
+            <span style={{ fontSize: 32, lineHeight: 1, flexShrink: 0 }}>🎒</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', marginBottom: 3 }}>
+                装备大本营
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                保存常用露营装备，下次出行不用从零整理
+              </div>
+            </div>
+            <span style={{ fontSize: 18, color: 'var(--text-light)', flexShrink: 0 }}>›</span>
+          </button>
+        </div>
       </div>
 
       {/* ── New plan sheet ── */}
