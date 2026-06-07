@@ -21,6 +21,10 @@ type AuthView =
 /** 视图导航函数；email 可选，用于 sent 页面显示目标邮箱 */
 type Navigate = (view: AuthView, email?: string) => void;
 
+// ─── 装备库视图类型 ─────────────────────────────────────────────────────────────
+
+type EquipView = 'overview' | 'category';
+
 // ─── 常量 ─────────────────────────────────────────────────────────────────────
 
 const CUSTOM_OPTION = '__custom__';
@@ -32,20 +36,6 @@ const PLAN_TYPE_OPTIONS: { value: SupplyType; label: string }[] = [
 ];
 
 // ─── 工具函数 ─────────────────────────────────────────────────────────────────
-
-/** 按 SYSTEM_CATEGORIES 预设顺序排序，自定义分类排末尾，"其他"永远最后 */
-function sortCategories(cats: string[]): string[] {
-  return [...cats].sort((a, b) => {
-    if (a === '其他') return 1;
-    if (b === '其他') return -1;
-    const ai = SYSTEM_CATEGORIES.indexOf(a);
-    const bi = SYSTEM_CATEGORIES.indexOf(b);
-    if (ai === -1 && bi === -1) return a.localeCompare(b, 'zh');
-    if (ai === -1) return 1;
-    if (bi === -1) return -1;
-    return ai - bi;
-  });
-}
 
 /** 取装备的功能分类，无 system_category 时兜底"其他" */
 function getItemCategory(item: EquipmentItem): string {
@@ -102,9 +92,6 @@ export default function EquipmentPage({ onBack }: EquipmentPageProps) {
   const [itemsLoading, setItemsLoading] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
 
-  // ── 二级分组折叠状态：key = category 名，true = 折叠 ──
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-
   // ── 添加/编辑 Modal 状态 ──
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState<EquipmentItem | null>(null);
@@ -126,6 +113,10 @@ export default function EquipmentPage({ onBack }: EquipmentPageProps) {
 
   const isCustomCategory = fCategorySelect === CUSTOM_OPTION;
 
+  // ── 装备库视图：overview = 分类总览，category = 分类详情 ──
+  const [equipView, setEquipView] = useState<EquipView>('overview');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+
   // ── 登录后加载装备 ──
   const loadItems = useCallback(async (uid: string) => {
     setItemsLoading(true);
@@ -141,6 +132,7 @@ export default function EquipmentPage({ onBack }: EquipmentPageProps) {
       loadItems(user.id);
     } else if (!user) {
       setItems([]);
+      setEquipView('overview');
     }
   }, [user, isRecoveryMode, loadItems]);
 
@@ -159,11 +151,17 @@ export default function EquipmentPage({ onBack }: EquipmentPageProps) {
     return fCategorySelect;
   }
 
-  function openAdd() {
+  function openAdd(prefillCategory?: string) {
     setEditItem(null);
     setFName('');
-    setFCategorySelect(SYSTEM_CATEGORIES[0]);
-    setFCustomCategory('');
+    const cat = prefillCategory ?? SYSTEM_CATEGORIES[0];
+    if (SYSTEM_CATEGORIES.includes(cat)) {
+      setFCategorySelect(cat);
+      setFCustomCategory('');
+    } else {
+      setFCategorySelect(CUSTOM_OPTION);
+      setFCustomCategory(cat);
+    }
     setFPlanType('');
     setFQuantity('');
     setFNote('');
@@ -244,13 +242,24 @@ export default function EquipmentPage({ onBack }: EquipmentPageProps) {
     setDeleteTarget(null);
   }
 
-  function toggleCollapse(cat: string) {
-    setCollapsed(prev => ({ ...prev, [cat]: !prev[cat] }));
-  }
-
   // ─── 派生数据 ──────────────────────────────────────────────────────────────
 
-  const categoryNames = sortCategories([...new Set(items.map(getItemCategory))]);
+  // 总览：SYSTEM_CATEGORIES 全量展示 + 自定义分类（有装备时，排预设之后）
+  const itemCategorySet = new Set(items.map(getItemCategory));
+  const customCats = [...itemCategorySet]
+    .filter(c => !SYSTEM_CATEGORIES.includes(c))
+    .sort((a, b) => a.localeCompare(b, 'zh'));
+  const overviewCategories = [
+    ...SYSTEM_CATEGORIES.filter(c => c !== '其他'),
+    ...customCats,
+    '其他',
+  ];
+  const totalFavorites = items.filter(it => it.is_favorite).length;
+
+  // 分类详情：当前选中分类下的装备
+  const catItems = equipView === 'category'
+    ? items.filter(it => getItemCategory(it) === selectedCategory)
+    : [];
 
   // ─── 渲染 ──────────────────────────────────────────────────────────────────
 
@@ -273,16 +282,26 @@ export default function EquipmentPage({ onBack }: EquipmentPageProps) {
         zIndex: 400,
         flexShrink: 0,
       }}>
-        {onBack && (
-          <button className="btn-icon" onClick={onBack} style={{ fontSize: 20, flexShrink: 0 }}>
+        {(onBack || (user && !isRecoveryMode && equipView === 'category')) && (
+          <button
+            className="btn-icon"
+            onClick={() => {
+              if (user && !isRecoveryMode && equipView === 'category') {
+                setEquipView('overview');
+              } else {
+                onBack?.();
+              }
+            }}
+            style={{ fontSize: 20, flexShrink: 0 }}
+          >
             ←
           </button>
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontFamily: 'ZCOOL XiaoWei, serif', fontSize: 17, color: 'var(--text)' }}>
-            🎒 装备大本营
+            {user && !isRecoveryMode && equipView === 'category' ? selectedCategory : '🎒 装备大本营'}
           </div>
-          {user && !isRecoveryMode && (
+          {user && !isRecoveryMode && equipView !== 'category' && (
             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>
               {user.email}
             </div>
@@ -366,88 +385,149 @@ export default function EquipmentPage({ onBack }: EquipmentPageProps) {
               </div>
             )}
 
-            {/* 空状态 */}
-            {!itemsLoading && !listError && items.length === 0 && (
-              <div className="empty-state">
-                <div className="empty-icon">🎒</div>
-                <p>还没有保存任何装备<br />点击右下角 ＋ 开始添加</p>
-              </div>
-            )}
+            {/* ── 分类总览视图 ── */}
+            {!itemsLoading && !listError && equipView === 'overview' && (
+              <>
+                {/* 顶部概览区 */}
+                <div style={{
+                  background: 'var(--primary-dim)',
+                  border: '1px solid var(--primary-border)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '14px 16px',
+                  marginBottom: 14,
+                }}>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
+                    已收纳 {items.length} 件装备
+                    {totalFavorites > 0 && (
+                      <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
+                        · ⭐ {totalFavorites} 件常用
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                    按露营系统整理装备，下次出行更省心。
+                  </div>
+                </div>
 
-            {/* 分组列表 */}
-            {!itemsLoading && items.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {categoryNames.map(cat => {
-                  const catItems = items.filter(it => getItemCategory(it) === cat);
-                  if (catItems.length === 0) return null;
-                  const isCollapsed = !!collapsed[cat];
-                  return (
-                    <div key={cat}>
+                {/* 分类卡片网格 */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  {overviewCategories.map(cat => {
+                    const cardItems = items.filter(it => getItemCategory(it) === cat);
+                    const favCount = cardItems.filter(it => it.is_favorite).length;
+                    const samples = cardItems.slice(0, 2).map(it => it.name);
+                    const isEmpty = cardItems.length === 0;
+                    return (
                       <button
-                        onClick={() => toggleCollapse(cat)}
+                        key={cat}
+                        onClick={() => { setSelectedCategory(cat); setEquipView('category'); }}
                         style={{
-                          width: '100%', display: 'flex', alignItems: 'center',
-                          gap: 8, padding: '7px 10px',
-                          background: 'var(--bg-warm)',
+                          background: isEmpty ? 'var(--bg-warm)' : 'var(--card)',
                           border: '1px solid var(--border)',
-                          borderRadius: isCollapsed
-                            ? 'var(--radius-xs)'
-                            : 'var(--radius-xs) var(--radius-xs) 0 0',
-                          cursor: 'pointer', textAlign: 'left',
+                          borderRadius: 'var(--radius-xs)',
+                          padding: '12px 12px',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                          minHeight: 82,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
                         }}
                       >
-                        <span style={{
-                          fontSize: 11,
-                          transform: isCollapsed ? 'rotate(-90deg)' : 'none',
-                          display: 'inline-block',
-                          transition: 'transform 0.2s',
-                          color: 'var(--text-muted)',
-                        }}>▼</span>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', flex: 1 }}>
-                          {cat}
-                        </span>
-                        <span style={{
-                          fontSize: 12, color: 'var(--text-light)',
-                          background: 'var(--card)', border: '1px solid var(--border)',
-                          borderRadius: 10, padding: '1px 7px',
-                        }}>{catItems.length}</span>
-                      </button>
-
-                      {!isCollapsed && (
-                        <div style={{
-                          border: '1px solid var(--border)', borderTop: 'none',
-                          borderRadius: '0 0 var(--radius-xs) var(--radius-xs)',
-                          overflow: 'hidden',
-                        }}>
-                          {catItems.map((item, idx) => (
-                            <div
-                              key={item.id}
-                              style={{ borderTop: idx > 0 ? '1px solid var(--border)' : 'none' }}
-                            >
-                              <EquipmentCard
-                                item={item}
-                                onEdit={() => openEdit(item)}
-                                onDelete={() => setDeleteTarget(item)}
-                              />
-                            </div>
-                          ))}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', lineHeight: 1.3 }}>
+                            {cat}
+                          </span>
+                          <span style={{ fontSize: 14, color: 'var(--text-light)', marginLeft: 4, flexShrink: 0 }}>
+                            →
+                          </span>
                         </div>
-                      )}
+                        {isEmpty ? (
+                          <div style={{ fontSize: 12, color: 'var(--primary)', marginTop: 10 }}>
+                            点击添加第一件
+                          </div>
+                        ) : (
+                          <div style={{ marginTop: 8 }}>
+                            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 2 }}>
+                              {cardItems.length} 件{favCount > 0 ? ` · ⭐ ${favCount}` : ''}
+                            </div>
+                            <div style={{
+                              fontSize: 12, color: 'var(--text-light)',
+                              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                            }}>
+                              {samples.join('、')}{cardItems.length > 2 ? '…' : ''}
+                            </div>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {/* ── 分类详情视图 ── */}
+            {!itemsLoading && !listError && equipView === 'category' && (
+              catItems.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-icon">🎒</div>
+                  <p>{selectedCategory} 还没有装备<br />点击右下角 ＋ 添加第一件</p>
+                </div>
+              ) : (
+                <div style={{
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-xs)',
+                  overflow: 'hidden',
+                }}>
+                  {catItems.map((item, idx) => (
+                    <div
+                      key={item.id}
+                      style={{ borderTop: idx > 0 ? '1px solid var(--border)' : 'none' }}
+                    >
+                      <EquipmentCard
+                        item={item}
+                        onEdit={() => openEdit(item)}
+                        onDelete={() => setDeleteTarget(item)}
+                      />
                     </div>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              )
             )}
           </>
         )}
       </div>
 
-      {/* ── FAB（仅已登录且非 recovery 时显示）── */}
-      {isSupabaseConfigured() && !authLoading && user && !isRecoveryMode && (
+      {/* ── FAB：分类详情页主 FAB（预填分类），总览页轻量 FAB ── */}
+      {isSupabaseConfigured() && !authLoading && user && !isRecoveryMode && equipView === 'category' && (
         <button
           className="fab"
-          onClick={openAdd}
+          onClick={() => openAdd(selectedCategory)}
           style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}
+        >
+          ＋
+        </button>
+      )}
+      {isSupabaseConfigured() && !authLoading && user && !isRecoveryMode && equipView === 'overview' && (
+        <button
+          onClick={() => openAdd()}
+          style={{
+            position: 'fixed',
+            bottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)',
+            right: 20,
+            width: 42,
+            height: 42,
+            borderRadius: '50%',
+            background: 'var(--bg-warm)',
+            border: '1.5px solid var(--border-dark)',
+            color: 'var(--text-muted)',
+            fontSize: 20,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 500,
+            boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+          }}
         >
           ＋
         </button>
@@ -1347,7 +1427,7 @@ function SetNewPasswordView({ updatePassword }: {
   );
 }
 
-// ─── 装备卡片（不变）─────────────────────────────────────────────────────────
+// ─── 装备卡片 ─────────────────────────────────────────────────────────────────
 
 function EquipmentCard({
   item, onEdit, onDelete,
