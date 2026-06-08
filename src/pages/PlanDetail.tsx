@@ -91,8 +91,9 @@ export default function PlanDetail() {
         {roomCode && (
           <button
             onClick={() => {
-              navigator.clipboard.writeText(roomCode).catch(() => {});
-              toast('房间码已复制：' + roomCode);
+              const text = `来一起编辑露营计划～\n\n打开露营小助手：https://www.gogocamping.xyz\n输入房间码：${roomCode}`;
+              navigator.clipboard.writeText(text).catch(() => {});
+              toast('已复制地址和房间码');
             }}
             style={{
               border: 'none', cursor: 'pointer',
