@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Supply, SupplyType } from '../../types';
 
 import { SUPPLY_TYPE_LABELS, SUPPLY_TYPE_ICONS, SYSTEM_CATEGORIES } from '../../types';
 import { useApp } from '../../App';
 import { generateId } from '../../store';
 import Modal from '../../components/Modal';
+import { useAuth } from '../../hooks/useAuth';
+import { listEquipment } from '../../equipment';
+import type { EquipmentItem } from '../../equipment';
 
 /** 只允许数字 + 最多一个小数点 + 最多两位小数 */
 function sanitizeAmount(val: string): string {
@@ -37,6 +40,19 @@ function sortCategories(cats: string[]): string[] {
   });
 }
 
+/**
+ * 合并装备大本营的 quantity（默认数量）和 note（备注）
+ * → 计划物资的 quantity（数量/备注）字段
+ */
+function mergeEquipmentQuantity(eq: EquipmentItem): string {
+  const qty = (eq.quantity ?? '').trim();
+  const note = (eq.note ?? '').trim();
+  if (qty && note) return `${qty}；${note}`;
+  if (qty) return qty;
+  if (note) return note;
+  return '';
+}
+
 const SUPPLY_ACCENT: Record<SupplyType, string> = {
   personal: '#C8651A',
   food: '#3D6B4F',
@@ -58,6 +74,8 @@ const CUSTOM_OPTION = '__custom__';
 
 export default function SuppliesTab() {
   const { plan, updatePlan, toast, setCurrentTab } = useApp();
+  const { user } = useAuth();
+
   const [showNoFamilyGuide, setShowNoFamilyGuide] = useState(false);
   const [activeType, setActiveType] = useState<SupplyType>('personal');
   const [filterFamily, setFilterFamily] = useState<string>('all');
@@ -77,6 +95,15 @@ export default function SuppliesTab() {
   const [fNeedsAA, setFNeedsAA] = useState(false);
   const [fPrice, setFPrice] = useState('');
 
+  // ── 装备大本营导入状态 ────────────────────────────────────────────────────────
+  const [showUnauthGuide, setShowUnauthGuide] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importItems, setImportItems] = useState<EquipmentItem[]>([]);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importAssigneeId, setImportAssigneeId] = useState('');
+  const [importSelected, setImportSelected] = useState<Set<string>>(new Set());
+
   const isCustom = fSystemCategorySelect === CUSTOM_OPTION;
 
   const familyMap = Object.fromEntries(plan.families.map(f => [f.id, f.name]));
@@ -93,6 +120,26 @@ export default function SuppliesTab() {
 
   // 按功能分类分组
   const categoryNames = sortCategories([...new Set(filtered.map(getItemSystemCategory))]);
+
+  // 负责人或装备列表变更时，重新计算默认选中项：
+  // 非疑似重复的装备默认勾选；疑似重复的装备默认不勾选
+  useEffect(() => {
+    if (!importAssigneeId || importItems.length === 0) {
+      setImportSelected(new Set());
+      return;
+    }
+    const newSelected = new Set<string>(
+      importItems
+        .filter(eq => !plan.supplies.some(s =>
+          s.assigneeId === importAssigneeId &&
+          s.name === eq.name &&
+          (s.system_category || s.category) === eq.system_category &&
+          s.type === (eq.default_plan_type ?? 'gear')
+        ))
+        .map(eq => eq.id)
+    );
+    setImportSelected(newSelected);
+  }, [importAssigneeId, importItems, plan.supplies]);
 
   function toggleCollapse(type: SupplyType, cat: string) {
     const key = `${type}::${cat}`;
@@ -184,6 +231,91 @@ export default function SuppliesTab() {
     setDeleteTarget(null);
   }
 
+  // ── 装备大本营导入逻辑 ────────────────────────────────────────────────────────
+
+  /** 入口：依次检查参与者 → 登录状态 → 打开弹窗 */
+  function handleOpenImport() {
+    if (plan.families.length === 0) {
+      setShowNoFamilyGuide(true);
+      return;
+    }
+    if (!user) {
+      setShowUnauthGuide(true);
+      return;
+    }
+    openImportModal();
+  }
+
+  function openImportModal() {
+    setImportAssigneeId('');
+    setImportItems([]);
+    setImportSelected(new Set());
+    setImportLoading(true);
+    setImportError(null);
+    setShowImportModal(true);
+    listEquipment(user!.id).then(({ data, error }) => {
+      setImportLoading(false);
+      if (error || !data) {
+        setImportError(error ?? '加载失败，请稍后重试');
+        return;
+      }
+      setImportItems(data);
+    });
+  }
+
+  function closeImportModal() {
+    setShowImportModal(false);
+    setImportItems([]);
+    setImportSelected(new Set());
+    setImportAssigneeId('');
+    setImportError(null);
+  }
+
+  /** 判断装备是否疑似已在当前计划中（同负责人 + 同名 + 同分类 + 同类型） */
+  function isPossibleDuplicate(eq: EquipmentItem, assigneeId: string): boolean {
+    if (!assigneeId) return false;
+    return plan.supplies.some(s =>
+      s.assigneeId === assigneeId &&
+      s.name === eq.name &&
+      (s.system_category || s.category) === eq.system_category &&
+      s.type === (eq.default_plan_type ?? 'gear')
+    );
+  }
+
+  function toggleImportItem(id: string) {
+    setImportSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  function doImport() {
+    if (!importAssigneeId || importSelected.size === 0) return;
+    const newSupplies: Supply[] = [...importSelected].map(id => {
+      const eq = importItems.find(e => e.id === id)!;
+      const sysCategory = eq.system_category || '其他';
+      return {
+        id: generateId(),
+        name: eq.name,
+        category: sysCategory,
+        system_category: sysCategory,
+        assigneeId: importAssigneeId,
+        quantity: mergeEquipmentQuantity(eq),
+        isReady: false,
+        needsAA: false,
+        type: eq.default_plan_type ?? 'gear',
+      };
+    });
+    updatePlan({ ...plan, supplies: [...plan.supplies, ...newSupplies] });
+    toast(`已导入 ${newSupplies.length} 件装备`);
+    closeImportModal();
+  }
+
   return (
     <div style={{ padding: '14px 14px 0' }}>
       {/* Segment control */}
@@ -238,6 +370,30 @@ export default function SuppliesTab() {
           }} />
         </div>
       )}
+
+      {/* 从装备大本营导入入口 */}
+      <button
+        onClick={handleOpenImport}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+          padding: '10px 14px', marginBottom: 12,
+          background: 'var(--card)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-xs)',
+          cursor: 'pointer', textAlign: 'left',
+        }}
+      >
+        <span style={{ fontSize: 20 }}>📦</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>
+            从装备大本营导入
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>
+            把常用装备带入本次计划
+          </div>
+        </div>
+        <span style={{ fontSize: 18, color: 'var(--text-muted)' }}>›</span>
+      </button>
 
       {/* Supply list grouped by system_category */}
       {filtered.length === 0 ? (
@@ -362,6 +518,43 @@ export default function SuppliesTab() {
                 取消
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unauth guide：未登录时点击导入的轻量提示 */}
+      {showUnauthGuide && (
+        <div
+          onClick={() => setShowUnauthGuide(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1001,
+            background: 'rgba(44,26,14,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '0 24px', animation: 'fadeIn 0.2s ease',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'var(--card)', borderRadius: 20,
+              padding: '28px 20px 20px', textAlign: 'center',
+              animation: 'slideUp 0.25s ease',
+              maxWidth: 320, width: '100%',
+            }}
+          >
+            <div style={{ fontSize: 36, marginBottom: 12 }}>🔐</div>
+            <h3 style={{ fontSize: 16, marginBottom: 8 }}>登录后可以导入</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.7, marginBottom: 20 }}>
+              登录后可以从装备大本营导入常用装备。<br />
+              请先回到首页进入装备大本营登录/注册。
+            </p>
+            <button
+              className="btn btn-primary"
+              style={{ width: '100%' }}
+              onClick={() => setShowUnauthGuide(false)}
+            >
+              我知道了
+            </button>
           </div>
         </div>
       )}
@@ -506,6 +699,212 @@ export default function SuppliesTab() {
           </div>
         )}
       </Modal>
+
+      {/* 装备大本营导入弹窗（底部滑出式 bottom sheet） */}
+      {showImportModal && (
+        <div
+          onClick={closeImportModal}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1001,
+            background: 'rgba(44,26,14,0.5)',
+            display: 'flex', alignItems: 'flex-end',
+            animation: 'fadeIn 0.2s ease',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'var(--card)',
+              borderRadius: '20px 20px 0 0',
+              width: '100%',
+              maxHeight: '85vh',
+              display: 'flex',
+              flexDirection: 'column',
+              animation: 'slideUp 0.25s ease',
+            }}
+          >
+            {/* Header */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '16px 16px 12px', flexShrink: 0,
+              borderBottom: '1px solid var(--border)',
+            }}>
+              <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>
+                从装备大本营导入
+              </h3>
+              <button
+                className="btn-icon"
+                onClick={closeImportModal}
+                style={{ fontSize: 18, color: 'var(--text-muted)' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* 负责人选择器 */}
+            <div style={{ padding: '12px 16px', flexShrink: 0, borderBottom: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 6 }}>
+                这些装备由谁负责？
+              </div>
+              <select
+                className="input"
+                value={importAssigneeId}
+                onChange={e => setImportAssigneeId(e.target.value)}
+              >
+                <option value="">请选择负责人/组</option>
+                {plan.families.map(f => (
+                  <option key={f.id} value={f.id}>{f.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* 装备列表（可滚动区域） */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px' }}>
+              {importLoading ? (
+                <div style={{
+                  textAlign: 'center', padding: '40px 0',
+                  color: 'var(--text-muted)', fontSize: 14,
+                }}>
+                  加载中…
+                </div>
+              ) : importError ? (
+                <div style={{
+                  textAlign: 'center', padding: '40px 0',
+                  color: 'var(--text-muted)', fontSize: 14,
+                }}>
+                  {importError}
+                </div>
+              ) : importItems.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                  <div style={{ fontSize: 36, marginBottom: 10 }}>📦</div>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.7 }}>
+                    你的装备大本营还没有装备<br />
+                    先去添加一些常用装备吧
+                  </p>
+                </div>
+              ) : (
+                <div style={{ paddingTop: 8, paddingBottom: 8 }}>
+                  {importAssigneeId && (
+                    <div style={{
+                      fontSize: 12, color: 'var(--text-muted)',
+                      padding: '2px 0 8px',
+                    }}>
+                      已选 {importSelected.size} 件
+                      {importSelected.size > 0 && ' · '}
+                      {importSelected.size > 0 && (
+                        <span>⭐ 常用 · </span>
+                      )}
+                      <span style={{ color: '#C8651A' }}>橙色标签</span>表示可能已在计划中（默认不选）
+                    </div>
+                  )}
+                  {sortCategories([...new Set(importItems.map(eq => eq.system_category || '其他'))]).map(cat => {
+                    const catItems = importItems.filter(eq => (eq.system_category || '其他') === cat);
+                    if (catItems.length === 0) return null;
+                    return (
+                      <div key={cat} style={{ marginBottom: 14 }}>
+                        {/* 分类标题 */}
+                        <div style={{
+                          fontSize: 12, fontWeight: 700, color: 'var(--text-muted)',
+                          letterSpacing: '0.3px',
+                          padding: '6px 0 4px',
+                          borderBottom: '1px solid var(--border)',
+                          marginBottom: 2,
+                        }}>
+                          {cat}
+                        </div>
+                        {/* 装备行 */}
+                        {catItems.map(eq => {
+                          const isDuplicate = isPossibleDuplicate(eq, importAssigneeId);
+                          const isChecked = importSelected.has(eq.id);
+                          const merged = mergeEquipmentQuantity(eq);
+                          return (
+                            <div
+                              key={eq.id}
+                              onClick={() => toggleImportItem(eq.id)}
+                              style={{
+                                display: 'flex', alignItems: 'flex-start', gap: 10,
+                                padding: '10px 4px',
+                                borderBottom: '1px solid var(--border)',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {/* Checkbox */}
+                              <div style={{
+                                width: 20, height: 20, borderRadius: 4, flexShrink: 0,
+                                marginTop: 1,
+                                border: `2px solid ${isChecked ? '#C8651A' : 'var(--border)'}`,
+                                background: isChecked ? '#C8651A' : 'transparent',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                color: 'white', fontSize: 11, fontWeight: 700,
+                                transition: 'background 0.15s, border-color 0.15s',
+                              }}>
+                                {isChecked && '✓'}
+                              </div>
+                              {/* 装备信息 */}
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{
+                                  display: 'flex', alignItems: 'center',
+                                  gap: 5, flexWrap: 'wrap',
+                                }}>
+                                  <span style={{
+                                    fontSize: 14, fontWeight: 500, color: 'var(--text)',
+                                  }}>
+                                    {eq.name}
+                                  </span>
+                                  {eq.is_favorite && (
+                                    <span style={{ fontSize: 13 }}>⭐</span>
+                                  )}
+                                  {isDuplicate && (
+                                    <span style={{
+                                      fontSize: 11, color: '#C8651A',
+                                      background: '#FEF3E8',
+                                      border: '1px solid #F0C090',
+                                      borderRadius: 8, padding: '1px 6px',
+                                      flexShrink: 0,
+                                    }}>
+                                      可能已在计划中
+                                    </span>
+                                  )}
+                                </div>
+                                {merged && (
+                                  <div style={{
+                                    fontSize: 12, color: 'var(--text-muted)', marginTop: 2,
+                                  }}>
+                                    {merged}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* 底部固定操作区 */}
+            <div style={{
+              flexShrink: 0,
+              padding: '12px 16px 28px',
+              borderTop: '1px solid var(--border)',
+              background: 'var(--card)',
+            }}>
+              <button
+                className="btn btn-primary"
+                style={{ width: '100%' }}
+                disabled={!importAssigneeId || importSelected.size === 0}
+                onClick={doImport}
+              >
+                {importSelected.size > 0
+                  ? `导入 ${importSelected.size} 件装备`
+                  : '导入装备'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
