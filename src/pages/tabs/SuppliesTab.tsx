@@ -738,6 +738,8 @@ export default function SuppliesTab() {
             position: 'fixed', inset: 0, zIndex: 1001,
             background: 'rgba(44,26,14,0.5)',
             display: 'flex', alignItems: 'flex-end',
+            // 上移 sheet 使其底边位于 BottomNav 上方，避免 footer 按钮被导航栏遮挡
+            paddingBottom: 'var(--nav-height)',
             animation: 'fadeIn 0.2s ease',
           }}
         >
@@ -747,9 +749,8 @@ export default function SuppliesTab() {
               background: 'var(--card)',
               borderRadius: '20px 20px 0 0',
               width: '100%',
-              // dvh = dynamic viewport height，适配 iOS Safari 底部工具栏
-              // 旧版浏览器降级到 85vh
-              maxHeight: '85dvh',
+              // 80vh：兼容所有手机浏览器；sheet 已通过 overlay paddingBottom 上移，无需 dvh
+              maxHeight: '80vh',
               display: 'flex',
               flexDirection: 'column',
               animation: 'slideUp 0.25s ease',
