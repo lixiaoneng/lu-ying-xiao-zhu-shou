@@ -103,6 +103,11 @@ export default function SuppliesTab() {
   const [importError, setImportError] = useState<string | null>(null);
   const [importAssigneeId, setImportAssigneeId] = useState('');
   const [importSelected, setImportSelected] = useState<Set<string>>(new Set());
+  /**
+   * 未指定 default_plan_type 的装备导入时使用的 fallback 类型。
+   * 空字符串表示用户尚未选择。
+   */
+  const [importFallbackType, setImportFallbackType] = useState<SupplyType | ''>('');
 
   const isCustom = fSystemCategorySelect === CUSTOM_OPTION;
 
@@ -121,8 +126,18 @@ export default function SuppliesTab() {
   // 按功能分类分组
   const categoryNames = sortCategories([...new Set(filtered.map(getItemSystemCategory))]);
 
-  // 负责人或装备列表变更时，重新计算默认选中项：
-  // 非疑似重复的装备默认勾选；疑似重复的装备默认不勾选
+  // ── 导入弹窗派生值 ──────────────────────────────────────────────────────────
+  /** 装备库中是否存在未指定类型的装备 */
+  const hasAnyUntypedInLibrary = importItems.some(eq => !eq.default_plan_type);
+  /** 已勾选装备中是否包含未指定类型的装备 */
+  const hasUntypedSelected = importSelected.size > 0 &&
+    [...importSelected].some(id => !importItems.find(e => e.id === id)?.default_plan_type);
+  /** 是否需要用户先选择 fallback 类型才能导入 */
+  const needsFallbackChoice = hasUntypedSelected && !importFallbackType;
+
+  // 负责人、装备列表、fallback 类型任一变更时，重新计算默认选中项：
+  // 非疑似重复的装备默认勾选；疑似重复的装备默认不勾选。
+  // 若某装备类型未知（无 default_plan_type 且 fallback 未选），视为非重复项预选。
   useEffect(() => {
     if (!importAssigneeId || importItems.length === 0) {
       setImportSelected(new Set());
@@ -130,16 +145,21 @@ export default function SuppliesTab() {
     }
     const newSelected = new Set<string>(
       importItems
-        .filter(eq => !plan.supplies.some(s =>
-          s.assigneeId === importAssigneeId &&
-          s.name === eq.name &&
-          (s.system_category || s.category) === eq.system_category &&
-          s.type === (eq.default_plan_type ?? 'gear')
-        ))
+        .filter(eq => {
+          const etype = eq.default_plan_type ?? (importFallbackType || null);
+          // 类型未知时，无法判断重复，预选该装备
+          if (!etype) return true;
+          return !plan.supplies.some(s =>
+            s.assigneeId === importAssigneeId &&
+            s.name === eq.name &&
+            (s.system_category || s.category) === eq.system_category &&
+            s.type === etype
+          );
+        })
         .map(eq => eq.id)
     );
     setImportSelected(newSelected);
-  }, [importAssigneeId, importItems, plan.supplies]);
+  }, [importAssigneeId, importItems, plan.supplies, importFallbackType]);
 
   function toggleCollapse(type: SupplyType, cat: string) {
     const key = `${type}::${cat}`;
@@ -250,6 +270,7 @@ export default function SuppliesTab() {
     setImportAssigneeId('');
     setImportItems([]);
     setImportSelected(new Set());
+    setImportFallbackType('');
     setImportLoading(true);
     setImportError(null);
     setShowImportModal(true);
@@ -268,17 +289,24 @@ export default function SuppliesTab() {
     setImportItems([]);
     setImportSelected(new Set());
     setImportAssigneeId('');
+    setImportFallbackType('');
     setImportError(null);
   }
 
-  /** 判断装备是否疑似已在当前计划中（同负责人 + 同名 + 同分类 + 同类型） */
+  /**
+   * 判断装备是否疑似已在当前计划中。
+   * 使用最终导入 type：有 default_plan_type 用它，没有则用 fallback。
+   * fallback 未选时无法判断，返回 false（不标记为重复）。
+   */
   function isPossibleDuplicate(eq: EquipmentItem, assigneeId: string): boolean {
     if (!assigneeId) return false;
+    const etype = eq.default_plan_type ?? (importFallbackType || null);
+    if (!etype) return false;
     return plan.supplies.some(s =>
       s.assigneeId === assigneeId &&
       s.name === eq.name &&
       (s.system_category || s.category) === eq.system_category &&
-      s.type === (eq.default_plan_type ?? 'gear')
+      s.type === etype
     );
   }
 
@@ -295,10 +323,12 @@ export default function SuppliesTab() {
   }
 
   function doImport() {
-    if (!importAssigneeId || importSelected.size === 0) return;
+    if (!importAssigneeId || importSelected.size === 0 || needsFallbackChoice) return;
     const newSupplies: Supply[] = [...importSelected].map(id => {
       const eq = importItems.find(e => e.id === id)!;
       const sysCategory = eq.system_category || '其他';
+      // 有 default_plan_type 用装备自己的类型；否则使用用户选择的 fallback
+      const supplyType = (eq.default_plan_type ?? importFallbackType) as SupplyType;
       return {
         id: generateId(),
         name: eq.name,
@@ -308,7 +338,7 @@ export default function SuppliesTab() {
         quantity: mergeEquipmentQuantity(eq),
         isReady: false,
         needsAA: false,
-        type: eq.default_plan_type ?? 'gear',
+        type: supplyType,
       };
     });
     updatePlan({ ...plan, supplies: [...plan.supplies, ...newSupplies] });
@@ -700,7 +730,7 @@ export default function SuppliesTab() {
         )}
       </Modal>
 
-      {/* 装备大本营导入弹窗（底部滑出式 bottom sheet） */}
+      {/* ── 装备大本营导入弹窗（底部滑出式 bottom sheet） ── */}
       {showImportModal && (
         <div
           onClick={closeImportModal}
@@ -717,13 +747,15 @@ export default function SuppliesTab() {
               background: 'var(--card)',
               borderRadius: '20px 20px 0 0',
               width: '100%',
-              maxHeight: '85vh',
+              // dvh = dynamic viewport height，适配 iOS Safari 底部工具栏
+              // 旧版浏览器降级到 85vh
+              maxHeight: '85dvh',
               display: 'flex',
               flexDirection: 'column',
               animation: 'slideUp 0.25s ease',
             }}
           >
-            {/* Header */}
+            {/* Header — 固定不滚动 */}
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: '16px 16px 12px', flexShrink: 0,
@@ -741,7 +773,7 @@ export default function SuppliesTab() {
               </button>
             </div>
 
-            {/* 负责人选择器 */}
+            {/* 负责人选择器 — 固定不滚动 */}
             <div style={{ padding: '12px 16px', flexShrink: 0, borderBottom: '1px solid var(--border)' }}>
               <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 6 }}>
                 这些装备由谁负责？
@@ -758,8 +790,35 @@ export default function SuppliesTab() {
               </select>
             </div>
 
-            {/* 装备列表（可滚动区域） */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px' }}>
+            {/* 未指定类型 fallback 选择器 — 固定不滚动，仅在库中有未指定类型的装备时显示 */}
+            {!importLoading && !importError && hasAnyUntypedInLibrary && (
+              <div style={{ padding: '10px 16px', flexShrink: 0, borderBottom: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 6 }}>
+                  未指定类型时导入为
+                </div>
+                <select
+                  className="input"
+                  value={importFallbackType}
+                  onChange={e => setImportFallbackType(e.target.value as SupplyType | '')}
+                >
+                  <option value="">请选择</option>
+                  <option value="personal">各家自带</option>
+                  <option value="food">公共食材</option>
+                  <option value="gear">公共物资</option>
+                </select>
+              </div>
+            )}
+
+            {/* 装备列表 — 可滚动区域
+                min-height: 0 是关键：让 flex 子项能收缩，
+                避免列表把 sheet 撑高到视口外导致底部按钮不可见 */}
+            <div style={{
+              flex: 1,
+              overflowY: 'auto',
+              minHeight: 0,
+              padding: '0 16px',
+              overscrollBehavior: 'contain',
+            }}>
               {importLoading ? (
                 <div style={{
                   textAlign: 'center', padding: '40px 0',
@@ -785,16 +844,9 @@ export default function SuppliesTab() {
               ) : (
                 <div style={{ paddingTop: 8, paddingBottom: 8 }}>
                   {importAssigneeId && (
-                    <div style={{
-                      fontSize: 12, color: 'var(--text-muted)',
-                      padding: '2px 0 8px',
-                    }}>
-                      已选 {importSelected.size} 件
-                      {importSelected.size > 0 && ' · '}
-                      {importSelected.size > 0 && (
-                        <span>⭐ 常用 · </span>
-                      )}
-                      <span style={{ color: '#C8651A' }}>橙色标签</span>表示可能已在计划中（默认不选）
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '2px 0 8px' }}>
+                      已选 {importSelected.size} 件 · ⭐ 常用 ·{' '}
+                      <span style={{ color: '#C8651A' }}>橙色</span> 可能已在计划中（默认不选）
                     </div>
                   )}
                   {sortCategories([...new Set(importItems.map(eq => eq.system_category || '其他'))]).map(cat => {
@@ -817,6 +869,7 @@ export default function SuppliesTab() {
                           const isDuplicate = isPossibleDuplicate(eq, importAssigneeId);
                           const isChecked = importSelected.has(eq.id);
                           const merged = mergeEquipmentQuantity(eq);
+                          const hasNoType = !eq.default_plan_type;
                           return (
                             <div
                               key={eq.id}
@@ -846,9 +899,7 @@ export default function SuppliesTab() {
                                   display: 'flex', alignItems: 'center',
                                   gap: 5, flexWrap: 'wrap',
                                 }}>
-                                  <span style={{
-                                    fontSize: 14, fontWeight: 500, color: 'var(--text)',
-                                  }}>
+                                  <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>
                                     {eq.name}
                                   </span>
                                   {eq.is_favorite && (
@@ -859,17 +910,24 @@ export default function SuppliesTab() {
                                       fontSize: 11, color: '#C8651A',
                                       background: '#FEF3E8',
                                       border: '1px solid #F0C090',
-                                      borderRadius: 8, padding: '1px 6px',
-                                      flexShrink: 0,
+                                      borderRadius: 8, padding: '1px 6px', flexShrink: 0,
                                     }}>
                                       可能已在计划中
                                     </span>
                                   )}
+                                  {hasNoType && (
+                                    <span style={{
+                                      fontSize: 11, color: 'var(--text-muted)',
+                                      background: 'var(--bg-warm)',
+                                      border: '1px solid var(--border)',
+                                      borderRadius: 8, padding: '1px 6px', flexShrink: 0,
+                                    }}>
+                                      未指定类型
+                                    </span>
+                                  )}
                                 </div>
                                 {merged && (
-                                  <div style={{
-                                    fontSize: 12, color: 'var(--text-muted)', marginTop: 2,
-                                  }}>
+                                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
                                     {merged}
                                   </div>
                                 )}
@@ -884,17 +942,29 @@ export default function SuppliesTab() {
               )}
             </div>
 
-            {/* 底部固定操作区 */}
+            {/* 底部固定操作区 — 固定不滚动
+                paddingBottom 使用 env(safe-area-inset-bottom) 避免被 iPhone home bar 遮挡 */}
             <div style={{
               flexShrink: 0,
-              padding: '12px 16px 28px',
+              paddingTop: 12,
+              paddingLeft: 16,
+              paddingRight: 16,
+              paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px))',
               borderTop: '1px solid var(--border)',
               background: 'var(--card)',
             }}>
+              {needsFallbackChoice && (
+                <div style={{
+                  fontSize: 12, color: '#C8651A',
+                  textAlign: 'center', marginBottom: 8,
+                }}>
+                  请先选择未指定类型装备的导入类别
+                </div>
+              )}
               <button
                 className="btn btn-primary"
                 style={{ width: '100%' }}
-                disabled={!importAssigneeId || importSelected.size === 0}
+                disabled={!importAssigneeId || importSelected.size === 0 || needsFallbackChoice}
                 onClick={doImport}
               >
                 {importSelected.size > 0
