@@ -8,9 +8,10 @@
 ## 📍 当前状态
 
 - **分支**：`dev`（生产分支为 `main`，未经用户明确说"上线"不得 merge）
-- **上次 commit**：`c1ff724` feat: 首页装备大本营入口展示登录状态（Step 1）
+- **上次 commit**：`7c373f0` feat: 装备大本营入口改为首页功能入口卡（移除 fixed Dock）
 - **部署**：Vercel Preview（dev 分支自动部署），生产域名 `www.gogocamping.xyz`
 - **真实用户**：有，生产数据不得破坏
+- **main 最新**：`bbb52b3` merge: 装备大本营入口改为首页功能入口卡（已上线）
 
 ---
 
@@ -25,26 +26,27 @@
 - [x] 花费记录 + AA 结算（按人头，支持部分 AA）
 - [x] 露营菜单管理
 - [x] 分享/导出（群聊文案 + JSON 导出）
+- [x] 地点字段支持长导航链接（maxLength 200）
 
 ### 装备大本营（可选登录）
 - [x] Supabase Auth 邮箱密码登录/注册（主）
 - [x] Magic Link 邮箱链接登录（备选）
 - [x] 忘记密码 + PASSWORD_RECOVERY 完整流程
 - [x] 装备 CRUD（listEquipment / addEquipment / updateEquipment / deleteEquipment）
-- [x] 装备按 system_category 分组展示，折叠展开
+- [x] 装备按 system_category 分组展示（已改为分类卡片总览）
 - [x] is_favorite 常用标记，排序靠前
 - [x] 退出登录（二次确认）
 - [x] 发送邮件 60s 倒计时防 rate limit
-- [x] 首页入口展示三态登录状态（未登录/loading/已登录+邮箱前缀）
+- [x] 首页入口：功能入口卡（淡橙渐变，登录三态显示，位于操作按钮下方）**【已上线】**
+- [x] EquipmentPage：分类卡片总览（所有 SYSTEM_CATEGORIES，含空分类，引导文案）
+- [x] EquipmentPage：分类详情视图 + FAB 预填当前分类添加装备
+- [x] 编辑装备改分类后自动从当前分类列表消失
 
 ---
 
 ## 🚧 进行中 / 下一步任务
 
 ### 近期待做（已确认方向，未开始编码）
-- [ ] **Step 2**：首页装备大本营入口改为底部固定 Dock（position: fixed）
-- [ ] **Step 3**：EquipmentPage 改为功能分类卡片总览（所有 SYSTEM_CATEGORIES 展示，含空分类）
-- [ ] **Step 4**：EquipmentPage 增加分类详情视图 + 预填当前分类添加装备
 - [ ] 配置 Supabase 自定义 SMTP（正式推广前）
 - [ ] 汉化 Magic Link 邮件模板（Supabase 控制台操作，非代码）
 
@@ -68,9 +70,9 @@ src/
 ├── equipment.ts      # 装备库 CRUD + 类型定义（EquipmentItem 等）
 ├── App.tsx           # view state（home/equipment），绝对不把 auth 放进 AppContext
 ├── pages/
-│   ├── Home.tsx      # 首页，含装备大本营入口 + 登录状态展示
+│   ├── Home.tsx      # 首页，含装备大本营功能入口卡 + 登录三态展示
 │   ├── PlanDetail.tsx
-│   ├── EquipmentPage.tsx   # 装备大本营全页面
+│   ├── EquipmentPage.tsx   # 装备大本营全页面（分类总览 + 分类详情）
 │   └── tabs/         # 物资/花费/AA/分享，不轻易改
 ├── hooks/
 │   └── useAuth.ts    # Auth 状态管理，含 isRecoveryMode
@@ -138,4 +140,4 @@ src/
 
 ---
 
-*最后更新：由 `/handoff` 于 2026-06-07 生成*
+*最后更新：由 `/handoff` 于 2026-06-08 生成*
