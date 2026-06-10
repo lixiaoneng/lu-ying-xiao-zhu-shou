@@ -76,6 +76,10 @@ export function duplicatePlan(source: CampingPlan): CampingPlan {
     ...e,
     id: generateId(),
     payerFamilyId: familyIdMap[e.payerFamilyId] ?? e.payerFamilyId,
+    // aaScope 为 family id 列表时必须同步重映射，否则副本的部分 AA 结算会失衡
+    aaScope: Array.isArray(e.aaScope)
+      ? e.aaScope.map(fid => familyIdMap[fid] ?? fid)
+      : e.aaScope,
   }));
 
   clone.menuItems = clone.menuItems.map(m => ({
@@ -136,11 +140,13 @@ export function importPlanFromJson(json: string): CampingPlan | null {
     const plan = JSON.parse(json) as CampingPlan;
     if (!plan.id || !plan.name) return null;
     plan.id = generateId();
-    plan.aaMode = plan.aaMode ?? 'family';
-    plan.menuItems = plan.menuItems ?? [];
+    // 导入的是独立副本：必须剥离 roomCode，否则首次同步会以新 id + 旧房间码
+    // upsert 出第二行记录，导致该房间码上的 .single() 查询对所有人失效
+    delete plan.roomCode;
     plan.createdAt = new Date().toISOString();
     plan.updatedAt = new Date().toISOString();
-    return plan;
+    // 字段兼容统一走 migratePlan（唯一入口），不再手工补丁
+    return migratePlan(plan);
   } catch {
     return null;
   }
