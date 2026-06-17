@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { useApp } from '../../App';
 import { calculateSettlement } from '../../types';
 import { exportPlanAsJson } from '../../store';
+import AIAssistantPanel from '../../features/aiAssistant/AIAssistantPanel';
 
 export default function ShareTab() {
   const { plan, toast } = useApp();
   const [copied, setCopied] = useState(false);
+  const [showAI, setShowAI] = useState(false);
 
   function formatDate(d: string) {
     if (!d) return '';
@@ -150,6 +152,38 @@ export default function ShareTab() {
 
   return (
     <div style={{ padding: '14px 14px 0' }}>
+      {/* AI 助手入口卡片（Demo · 规则版） */}
+      <button
+        onClick={() => setShowAI(true)}
+        style={{
+          width: '100%',
+          display: 'flex', alignItems: 'center', gap: 12,
+          padding: '14px 16px',
+          marginBottom: 14,
+          background: 'linear-gradient(135deg, #FFF5EC 0%, #FFE8D6 100%)',
+          border: '1.5px solid var(--primary-border)',
+          borderRadius: 'var(--radius-sm)',
+          cursor: 'pointer',
+          textAlign: 'left',
+        }}
+      >
+        <div style={{
+          width: 40, height: 40, borderRadius: 10,
+          background: 'var(--primary-dim)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 20, flexShrink: 0,
+        }}>✨</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)' }}>
+            AI 助手 Demo · 帮我检查一下
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+            查漏补缺 · 计划体检 · 生成群通知
+          </div>
+        </div>
+        <span style={{ fontSize: 18, color: 'var(--primary)' }}>›</span>
+      </button>
+
       {/* Header actions */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
         <button
@@ -262,6 +296,9 @@ export default function ShareTab() {
           })}
         </div>
       )}
+
+      {/* AI 助手面板（Demo · 规则版，不修改 plan） */}
+      <AIAssistantPanel isOpen={showAI} onClose={() => setShowAI(false)} />
     </div>
   );
 }
