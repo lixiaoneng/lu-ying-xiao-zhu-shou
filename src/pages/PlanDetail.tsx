@@ -1,5 +1,6 @@
 import { useApp } from '../App';
 import BottomNav from '../components/BottomNav';
+import Footer from '../components/Footer';
 import OverviewTab from './tabs/OverviewTab';
 import SuppliesTab from './tabs/SuppliesTab';
 import ExpensesTab from './tabs/ExpensesTab';
@@ -132,6 +133,7 @@ export default function PlanDetail() {
         {currentTab === 'expenses'   && <ExpensesTab />}
         {currentTab === 'settlement' && <SettlementTab />}
         {currentTab === 'share'      && <ShareTab />}
+        <Footer />
       </div>
 
       <BottomNav />

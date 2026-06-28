@@ -7,6 +7,7 @@ import {
 } from '../equipment';
 import { SYSTEM_CATEGORIES, SUPPLY_TYPE_LABELS, type SupplyType } from '../types';
 import Modal from '../components/Modal';
+import Footer from '../components/Footer';
 
 // ─── 认证视图类型 ──────────────────────────────────────────────────────────────
 
@@ -495,6 +496,8 @@ export default function EquipmentPage({ onBack }: EquipmentPageProps) {
             )}
           </>
         )}
+
+        <Footer />
       </div>
 
       {/* ── FAB：分类详情页主 FAB（预填分类），总览页轻量 FAB ── */}

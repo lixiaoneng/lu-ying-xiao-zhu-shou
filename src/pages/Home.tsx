@@ -6,6 +6,7 @@ import {
   exportPlanAsJson, importPlanFromJson, duplicatePlan,
 } from '../store';
 import { createSamplePlan } from '../sampleData';
+import Footer from '../components/Footer';
 import { isSupabaseConfigured } from '../supabase';
 import { generateRoomCode, createPlanInCloud, loadPlanByRoomCode } from '../sync';
 
@@ -499,6 +500,8 @@ export default function Home({ onOpenPlan, onOpenEquipment }: Props) {
         )}
 
       </div>
+
+      <Footer />
 
       {/* ── New plan sheet ── */}
       {showNew && (
